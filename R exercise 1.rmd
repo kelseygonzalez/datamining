@@ -13,15 +13,31 @@ knitr::opts_chunk$set(echo = TRUE)
 Load the data 
 ```{r}
 load("LifeExpectancyData.Rdata")
+
+head(data)
+
 ```
  
 
 
 # Central Tendency Measures: mean, median, and mode
 ### mean
+Overall mean life expectancy 
 ```{r}
+mean(data$Life, na.rm=TRUE)
+```
+Mean life expectancy by year
+```{r}
+aggregate(data[,4], list(data$Year), mean)
 
 ```
+
+Mean life expectancy overtime by country
+```{r}
+aggregate(data[,4], list(data$Country), mean)
+
+```
+
 
 ## median
 ```{r}
