@@ -24,17 +24,23 @@ head(data)
 ### mean
 Overall mean life expectancy 
 ```{r}
-mean(data$Life, na.rm=TRUE)
+mean(data$`Life expectancy`, na.rm=TRUE)
 ```
 Mean life expectancy by year
 ```{r}
-aggregate(data[,4], list(data$Year), mean)
+aggregate(data$`Life expectancy`, list(data$Year), mean, na.rm=TRUE)
 
 ```
 
 Mean life expectancy overtime by country
 ```{r}
-aggregate(data[,4], list(data$Country), mean)
+aggregate(data$`Life expectancy`, list(data$Country), mean, na.rm=TRUE)
+
+```
+
+Mean life expectancy by country status
+```{r}
+aggregate(data$`Life expectancy`, list(data$Status), mean, na.rm=TRUE)
 
 ```
 
@@ -47,6 +53,10 @@ aggregate(data[,4], list(data$Country), mean)
 
 ### mode
 ```{r}
+
+# installed.packages("modes")
+library("modes")
+modes(data$`Life expectancy`, type=1, digits="NULL", nmore="NULL")
 
 ```
 
