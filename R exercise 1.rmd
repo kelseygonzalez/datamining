@@ -1,0 +1,82 @@
+---
+title: 'R exercise 1: Know Your Data'
+author: "Kelsey Gonzalez and Laura Werthmann"
+date: "September 15, 2019"
+due date: "September 18, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load the data 
+```{r}
+load("LifeExpectancyData.Rdata")
+```
+ 
+
+
+# Central Tendency Measures: mean, median, and mode
+### mean
+```{r}
+
+```
+
+## median
+```{r}
+
+```
+
+
+### mode
+```{r}
+
+```
+
+
+
+# statistics of spread
+
+### variance
+```{r}
+
+```
+
+### standard deviation
+```{r}
+
+```
+  
+### inter-quartile range
+```{r}
+
+```
+
+# obtain summaries on subset of data
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+# data visualization: plotting in R
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
