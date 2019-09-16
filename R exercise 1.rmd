@@ -45,8 +45,11 @@ aggregate(data$`Life expectancy`, list(data$Status), mean, na.rm=TRUE)
 ```
 
 
-## median
+### median
 ```{r}
+# installed.packages("DMwR2")
+library(DMwR2)
+centralValue(data$`Life expectancy`)
 
 ```
 
@@ -66,17 +69,26 @@ modes(data$`Life expectancy`, type=1, digits="NULL", nmore="NULL")
 
 ### variance
 ```{r}
-
+var(data$`Life expectancy`, na.rm=TRUE)
 ```
 
 ### standard deviation
 ```{r}
+sd(data$`Life expectancy`, na.rm=TRUE)
 
 ```
   
 ### inter-quartile range
 ```{r}
+range(data$`Life expectancy`, na.rm=TRUE)
+max(data$`Life expectancy`, na.rm=TRUE)
+min(data$`Life expectancy`, na.rm=TRUE)
+IQR(data$`Life expectancy`, na.rm=TRUE)
+```
 
+```{r}
+quantile(data$`Life expectancy`, na.rm=TRUE)
+quantile(data$`Life expectancy`, probs=c(0.2, 0.8), na.rm=TRUE)
 ```
 
 # obtain summaries on subset of data
