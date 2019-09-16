@@ -452,8 +452,14 @@ head(data)</code></pre>
 ## 1  Developed 79.19785
 ## 2 Developing 67.11147</code></pre>
 </div>
-<div id="median" class="section level2">
-<h2>median</h2>
+<div id="median" class="section level3">
+<h3>median</h3>
+<pre class="r"><code># installed.packages(&quot;DMwR2&quot;)
+library(DMwR2)</code></pre>
+<pre><code>## Warning: package 'DMwR2' was built under R version 3.5.3</code></pre>
+<pre class="r"><code>centralValue(data$`Life expectancy`)</code></pre>
+<pre><code>## [1] 72.1</code></pre>
+</div>
 <div id="mode" class="section level3">
 <h3>mode</h3>
 <pre class="r"><code># installed.packages(&quot;modes&quot;)
@@ -464,17 +470,34 @@ modes(data$`Life expectancy`, type=1, digits=&quot;NULL&quot;, nmore=&quot;NULL&
 ## Length  243</code></pre>
 </div>
 </div>
-</div>
 <div id="statistics-of-spread" class="section level1">
 <h1>statistics of spread</h1>
 <div id="variance" class="section level3">
 <h3>variance</h3>
+<pre class="r"><code>var(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>## [1] 90.70405</code></pre>
 </div>
 <div id="standard-deviation" class="section level3">
 <h3>standard deviation</h3>
+<pre class="r"><code>sd(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>## [1] 9.523867</code></pre>
 </div>
 <div id="inter-quartile-range" class="section level3">
 <h3>inter-quartile range</h3>
+<pre class="r"><code>range(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>## [1] 36.3 89.0</code></pre>
+<pre class="r"><code>max(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>## [1] 89</code></pre>
+<pre class="r"><code>min(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>## [1] 36.3</code></pre>
+<pre class="r"><code>IQR(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>## [1] 12.6</code></pre>
+<pre class="r"><code>quantile(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>##   0%  25%  50%  75% 100% 
+## 36.3 63.1 72.1 75.7 89.0</code></pre>
+<pre class="r"><code>quantile(data$`Life expectancy`, probs=c(0.2, 0.8), na.rm=TRUE)</code></pre>
+<pre><code>##   20%   80% 
+## 59.90 76.96</code></pre>
 </div>
 </div>
 <div id="obtain-summaries-on-subset-of-data" class="section level1">
