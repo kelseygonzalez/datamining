@@ -186,16 +186,282 @@ summary {
 
 
 <p>Load the data</p>
-<pre class="r"><code>load(&quot;LifeExpectancyData.Rdata&quot;)</code></pre>
+<pre class="r"><code>load(&quot;LifeExpectancyData.Rdata&quot;)
+
+head(data)</code></pre>
+<pre><code>##       Country Year     Status Life expectancy Adult Mortality
+## 1 Afghanistan 2015 Developing            65.0             263
+## 2 Afghanistan 2014 Developing            59.9             271
+## 3 Afghanistan 2013 Developing            59.9             268
+## 4 Afghanistan 2012 Developing            59.5             272
+## 5 Afghanistan 2011 Developing            59.2             275
+## 6 Afghanistan 2010 Developing            58.8             279
+##   infant deaths Alcohol percentage expenditure Hepatitis B Measles  BMI
+## 1            62    0.01              71.279624          65    1154 19.1
+## 2            64    0.01              73.523582          62     492 18.6
+## 3            66    0.01              73.219243          64     430 18.1
+## 4            69    0.01              78.184215          67    2787 17.6
+## 5            71    0.01               7.097109          68    3013 17.2
+## 6            74    0.01              79.679367          66    1989 16.7
+##   under-five deaths Polio Total expenditure Diphtheria HIV/AIDS       GDP
+## 1                83     6              8.16         65      0.1 584.25921
+## 2                86    58              8.18         62      0.1 612.69651
+## 3                89    62              8.13         64      0.1 631.74498
+## 4                93    67              8.52         67      0.1 669.95900
+## 5                97    68              7.87         68      0.1  63.53723
+## 6               102    66              9.20         66      0.1 553.32894
+##   Population thinness  1-19 years thinness 5-9 years
+## 1   33736494                 17.2               17.3
+## 2     327582                 17.5               17.5
+## 3   31731688                 17.7               17.7
+## 4    3696958                 17.9               18.0
+## 5    2978599                 18.2               18.2
+## 6    2883167                 18.4               18.4
+##   Income composition of resources Schooling
+## 1                           0.479      10.1
+## 2                           0.476      10.0
+## 3                           0.470       9.9
+## 4                           0.463       9.8
+## 5                           0.454       9.5
+## 6                           0.448       9.2</code></pre>
 <div id="central-tendency-measures-mean-median-and-mode" class="section level1">
 <h1>Central Tendency Measures: mean, median, and mode</h1>
 <div id="mean" class="section level3">
 <h3>mean</h3>
+<p>Overall mean life expectancy</p>
+<pre class="r"><code>mean(data$`Life expectancy`, na.rm=TRUE)</code></pre>
+<pre><code>## [1] 69.22493</code></pre>
+<p>Mean life expectancy by year</p>
+<pre class="r"><code>aggregate(data$`Life expectancy`, list(data$Year), mean, na.rm=TRUE)</code></pre>
+<pre><code>##    Group.1        x
+## 1     2000 66.75027
+## 2     2001 67.12896
+## 3     2002 67.35137
+## 4     2003 67.43333
+## 5     2004 67.64645
+## 6     2005 68.20929
+## 7     2006 68.66776
+## 8     2007 69.03607
+## 9     2008 69.42787
+## 10    2009 69.93825
+## 11    2010 70.04863
+## 12    2011 70.65410
+## 13    2012 70.91694
+## 14    2013 71.23607
+## 15    2014 71.53661
+## 16    2015 71.61694</code></pre>
+<p>Mean life expectancy overtime by country</p>
+<pre class="r"><code>aggregate(data$`Life expectancy`, list(data$Country), mean, na.rm=TRUE)</code></pre>
+<pre><code>##                                                  Group.1        x
+## 1                                            Afghanistan 58.19375
+## 2                                                Albania 75.15625
+## 3                                                Algeria 73.61875
+## 4                                                 Angola 49.01875
+## 5                                    Antigua and Barbuda 75.05625
+## 6                                              Argentina 75.15625
+## 7                                                Armenia 73.40000
+## 8                                              Australia 81.81250
+## 9                                                Austria 81.48125
+## 10                                            Azerbaijan 70.73125
+## 11                                               Bahamas 74.28750
+## 12                                               Bahrain 75.72500
+## 13                                            Bangladesh 69.30000
+## 14                                              Barbados 74.35625
+## 15                                               Belarus 69.90625
+## 16                                               Belgium 80.68125
+## 17                                                Belize 69.26875
+## 18                                                 Benin 57.56875
+## 19                                                Bhutan 66.16250
+## 20                      Bolivia (Plurinational State of) 67.70625
+## 21                                Bosnia and Herzegovina 75.96875
+## 22                                              Botswana 56.05000
+## 23                                                Brazil 73.38125
+## 24                                     Brunei Darussalam 76.48750
+## 25                                              Bulgaria 72.85000
+## 26                                          Burkina Faso 55.64375
+## 27                                               Burundi 55.53750
+## 28                                            Cabo Verde 72.51875
+## 29                                              Cambodia 64.34375
+## 30                                              Cameroon 54.01875
+## 31                                                Canada 81.68750
+## 32                              Central African Republic 48.51250
+## 33                                                  Chad 50.38750
+## 34                                                 Chile 79.45000
+## 35                                                 China 74.26250
+## 36                                              Colombia 73.28750
+## 37                                               Comoros 61.58125
+## 38                                                 Congo 59.04375
+## 39                                          Cook Islands      NaN
+## 40                                            Costa Rica 78.59375
+## 41                                         Côte d'Ivoire 50.38750
+## 42                                               Croatia 76.11875
+## 43                                                  Cuba 77.97500
+## 44                                                Cyprus 79.67500
+## 45                                               Czechia 76.76875
+## 46                 Democratic People's Republic of Korea 69.19375
+## 47                      Democratic Republic of the Congo 55.68750
+## 48                                               Denmark 79.25625
+## 49                                              Djibouti 60.75625
+## 50                                              Dominica      NaN
+## 51                                    Dominican Republic 72.34375
+## 52                                               Ecuador 74.72500
+## 53                                                 Egypt 71.50000
+## 54                                           El Salvador 71.74375
+## 55                                     Equatorial Guinea 55.31250
+## 56                                               Eritrea 60.68750
+## 57                                               Estonia 74.94375
+## 58                                              Ethiopia 59.11250
+## 59                                                  Fiji 68.71250
+## 60                                               Finland 80.71250
+## 61                                                France 82.21875
+## 62                                                 Gabon 62.24375
+## 63                                                Gambia 59.46250
+## 64                                               Georgia 73.50625
+## 65                                               Germany 81.17500
+## 66                                                 Ghana 60.86250
+## 67                                                Greece 81.21875
+## 68                                               Grenada 73.29375
+## 69                                             Guatemala 71.73125
+## 70                                                Guinea 56.01250
+## 71                                         Guinea-Bissau 55.36875
+## 72                                                Guyana 65.63750
+## 73                                                 Haiti 59.86875
+## 74                                              Honduras 72.99375
+## 75                                               Hungary 73.82500
+## 76                                               Iceland 82.44375
+## 77                                                 India 65.41875
+## 78                                             Indonesia 67.55625
+## 79                            Iran (Islamic Republic of) 73.85625
+## 80                                                  Iraq 70.35625
+## 81                                               Ireland 80.15000
+## 82                                                Israel 81.30000
+## 83                                                 Italy 82.18750
+## 84                                               Jamaica 74.29375
+## 85                                                 Japan 82.53750
+## 86                                                Jordan 72.98750
+## 87                                            Kazakhstan 66.76250
+## 88                                                 Kenya 57.48125
+## 89                                              Kiribati 65.15000
+## 90                                                Kuwait 73.84375
+## 91                                            Kyrgyzstan 69.08125
+## 92                      Lao People's Democratic Republic 62.38125
+## 93                                                Latvia 73.73125
+## 94                                               Lebanon 74.20000
+## 95                                               Lesotho 48.78125
+## 96                                               Liberia 57.52500
+## 97                                                 Libya 72.48750
+## 98                                             Lithuania 72.80625
+## 99                                            Luxembourg 80.78125
+## 100                                           Madagascar 62.74375
+## 101                                               Malawi 49.89375
+## 102                                             Malaysia 73.75625
+## 103                                             Maldives 75.53750
+## 104                                                 Mali 54.93750
+## 105                                                Malta 80.36250
+## 106                                     Marshall Islands      NaN
+## 107                                           Mauritania 62.80000
+## 108                                            Mauritius 72.71250
+## 109                                               Mexico 75.71875
+## 110                     Micronesia (Federated States of) 68.20000
+## 111                                               Monaco      NaN
+## 112                                             Mongolia 65.88750
+## 113                                           Montenegro 74.50000
+## 114                                              Morocco 72.15625
+## 115                                           Mozambique 53.39375
+## 116                                              Myanmar 64.20000
+## 117                                              Namibia 60.40000
+## 118                                                Nauru      NaN
+## 119                                                Nepal 66.48125
+## 120                                          Netherlands 81.13125
+## 121                                          New Zealand 81.33750
+## 122                                            Nicaragua 73.45000
+## 123                                                Niger 56.98125
+## 124                                              Nigeria 51.35625
+## 125                                                 Niue      NaN
+## 126                                               Norway 81.79375
+## 127                                                 Oman 74.84375
+## 128                                             Pakistan 64.50000
+## 129                                                Palau      NaN
+## 130                                               Panama 76.48750
+## 131                                     Papua New Guinea 61.68125
+## 132                                             Paraguay 73.11250
+## 133                                                 Peru 73.66250
+## 134                                          Philippines 67.57500
+## 135                                               Poland 75.65000
+## 136                                             Portugal 79.99375
+## 137                                                Qatar 77.03125
+## 138                                    Republic of Korea 80.48750
+## 139                                  Republic of Moldova 69.98125
+## 140                                              Romania 74.05000
+## 141                                   Russian Federation 67.76250
+## 142                                               Rwanda 59.31250
+## 143                                Saint Kitts and Nevis      NaN
+## 144                                          Saint Lucia 73.60000
+## 145                     Saint Vincent and the Grenadines 73.47500
+## 146                                                Samoa 73.61875
+## 147                                           San Marino      NaN
+## 148                                Sao Tome and Principe 65.16250
+## 149                                         Saudi Arabia 73.46875
+## 150                                              Senegal 62.56875
+## 151                                               Serbia 73.95625
+## 152                                           Seychelles 72.37500
+## 153                                         Sierra Leone 46.11250
+## 154                                            Singapore 81.47500
+## 155                                             Slovakia 74.75000
+## 156                                             Slovenia 79.73125
+## 157                                      Solomon Islands 67.71250
+## 158                                              Somalia 53.31875
+## 159                                         South Africa 57.50000
+## 160                                          South Sudan 53.87500
+## 161                                                Spain 82.06875
+## 162                                            Sri Lanka 73.40000
+## 163                                                Sudan 61.82500
+## 164                                             Suriname 70.08125
+## 165                                            Swaziland 51.32500
+## 166                                               Sweden 82.51875
+## 167                                          Switzerland 82.33125
+## 168                                 Syrian Arab Republic 70.85000
+## 169                                           Tajikistan 66.65625
+## 170                                             Thailand 73.08125
+## 171            The former Yugoslav republic of Macedonia 74.11250
+## 172                                          Timor-Leste 64.75625
+## 173                                                 Togo 56.66250
+## 174                                                Tonga 72.53125
+## 175                                  Trinidad and Tobago 71.06875
+## 176                                              Tunisia 74.35625
+## 177                                               Turkey 73.91250
+## 178                                         Turkmenistan 64.61875
+## 179                                               Tuvalu      NaN
+## 180                                               Uganda 55.70625
+## 181                                              Ukraine 69.93750
+## 182                                 United Arab Emirates 75.70000
+## 183 United Kingdom of Great Britain and Northern Ireland 80.79375
+## 184                          United Republic of Tanzania 56.00625
+## 185                             United States of America 78.06250
+## 186                                              Uruguay 76.07500
+## 187                                           Uzbekistan 68.03125
+## 188                                              Vanuatu 71.38750
+## 189                   Venezuela (Bolivarian Republic of) 73.38750
+## 190                                             Viet Nam 74.77500
+## 191                                                Yemen 63.86250
+## 192                                               Zambia 53.90625
+## 193                                             Zimbabwe 50.48750</code></pre>
+<p>Mean life expectancy by country status</p>
+<pre class="r"><code>aggregate(data$`Life expectancy`, list(data$Status), mean, na.rm=TRUE)</code></pre>
+<pre><code>##      Group.1        x
+## 1  Developed 79.19785
+## 2 Developing 67.11147</code></pre>
 </div>
 <div id="median" class="section level2">
 <h2>median</h2>
 <div id="mode" class="section level3">
 <h3>mode</h3>
+<pre class="r"><code># installed.packages(&quot;modes&quot;)
+library(&quot;modes&quot;)
+modes(data$`Life expectancy`, type=1, digits=&quot;NULL&quot;, nmore=&quot;NULL&quot;)</code></pre>
+<pre><code>##        [,1]
+## Value    73
+## Length  243</code></pre>
 </div>
 </div>
 </div>
