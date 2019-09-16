@@ -6,4 +6,6 @@ Code and r scripts are created for [Hong Cui's](https://ischool.arizona.edu/peop
 
 
 [Exercise 1](datamining/R-exercise-1.html)  
+[Exercise 1](R-exercise-1.html)  
+
 
