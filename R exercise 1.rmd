@@ -110,16 +110,15 @@ describe(data)
 library(dplyr)
 group_by(data, Country, Status) %>% summarise(nObs=n(), mA7=median(`Life expectancy`))
 
-
 ```
 
 # data visualization: plotting in R
 
-```{r ggplot=plot, echo = FALSE}
+```{r}
 suppressPackageStartupMessages(library(ggplot2))
-ggplot(data=LifeExpectancy,
-       mapping = aes(x = LifeExpectancy$`Life expectancy`, 
-                     y = LifeExpectancy$'Year')) +
+ggplot(data=data,
+       mapping = aes(x = data$`Life expectancy`, 
+                     y = data$'Year')) +
 geom_jitter()+
   xlab ('Life expectancy')
   ylab ('Year')
@@ -127,39 +126,36 @@ geom_jitter()+
 
 
 
-```{r ggplot=plot, echo = FALSE}
-suppressPackageStartupMessages(library(ggplot2))
-ggplot(data = LifeExpectancy,
-       mapping = aes(LifeExpectancy$`Life expectancy`)) +
+```{r}
+ggplot(data = data,
+       mapping = aes(data$`Life expectancy`)) +
   geom_histogram(binwidth = 5)
 
 ```
 
 
-```{r ggplot=plot, echo = FALSE}
-suppressPackageStartupMessages(library(ggplot2))
-ggplot(data = LifeExpectancy,
-       mapping = aes(group=LifeExpectancy$Status,
-                     x=LifeExpectancy$`Life expectancy`,
-                     y=LifeExpectancy$Year)) +
+```{r}
+ggplot(data = data,
+       mapping = aes(group=data$Status,
+                     x=data$`Life expectancy`,
+                     y=data$Year)) +
   geom_boxplot() +
   xlab ('Life Expectancy')
   ylab ('Year')
 ```
 
-##{r ggplot=plot, echo=FALSE}
-suppressPackageStartupMessages(library(ggplot2))
-ggplot(data = LifeExpectancy,
-       aes(group=LifeExpectancy$Status,
-           x=LifeExpectancy$`Life expectancy`,
-           y=LifeExpectancy$Year)) +
-  geom_boxplot() + facet_grid(LifeExpectancy$GDP~LifeExpectancy$Status)
+```{r}
+# ggplot(data = data,
+#        aes(group=data$Status,
+#            x=data$`Life expectancy`,
+#            y=data$Year)) +
+#   geom_boxplot() + facet_grid(data$GDP~data$Status)
+```
+
   
-  
-```{r ggplot=plot, echo=FALSE}
-suppressPackageStartupMessages(library(ggplot2))
-ggplot(data = LifeExpectancy,
-       aes(x=LifeExpectancy$`Life expectancy`, y=LifeExpectancy$GDP)) +
+```{r}
+ggplot(data = data,
+       aes(x=data$`Life expectancy`, y=data$GDP)) +
   geom_point() + ggtitle("Relationship btwn Life Expectancy and GDP")
   
 
@@ -167,42 +163,41 @@ ggplot(data = LifeExpectancy,
 
 
 ```{r}
-plot(LifeExpectancy$`Life expectancy`, LifeExpectancy$Population, main="Relationship btwn Life Expectancy and Population")
+plot(data$`Life expectancy`, data$Population, main="Relationship btwn Life Expectancy and Population")
 
 ```
 
 ```{r}
-ggplot(data = LifeExpectancy,
-       aes(x=LifeExpectancy$`Life expectancy`,
-           y=LifeExpectancy$`percentage expenditure`)) +
-  geom_point()+ggtitle("Relationship btwn LE and Percentage Expenditure") +facet_grid(.~LifeExpectancy$Status)
+ggplot(data = data,
+       aes(x=data$`Life expectancy`,
+           y=data$`percentage expenditure`)) +
+  geom_point()+ggtitle("Relationship btwn LE and Percentage Expenditure") +facet_grid(.~data$Status)
 ```
 
-```{r ggplot=plot, echo=FALSE}
-suppressPackageStartupMessages(library(ggplot2))
-ggplot(data = LifeExpectancy,
-       mapping = aes(x = LifeExpectancy$Status,
-                     y = LifeExpectancy$`Life expectancy`)) +
+```{r}
+ggplot(data = data,
+       mapping = aes(x = data$Status,
+                     y = data$`Life expectancy`)) +
   geom_point() +
-  facet_wrap(~ LifeExpectancy$Year)
+  facet_wrap(~ data$Year)
 ```
 
 
 ```{r}
-boxplot(formula = LifeExpectancy$`Life expectancy` ~ LifeExpectancy$Year, data = LifeExpectancy)
+boxplot(formula = data$`Life expectancy` ~ data$Year, data = data)
 
 ```
 
 
 ```{r}
-LifeExpectancy$Over65 <- LifeExpectancy$`Life expectancy` > 65
+data$Over65 <- data$`Life expectancy` > 65
 
 ```
 
 ```{r}
-LifeExpectancy$category <- "med"
-LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_low] <- "Low"
-LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_high] <- "High"
+data$category <- "med"
+data$category [data$`Life expectancy`< LifeExpectancy_low] <- "Low"
+data$category [data$`Life expectancy`< LifeExpectancy_high] <- "High"
 
 ```
 
