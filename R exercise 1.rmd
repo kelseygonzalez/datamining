@@ -93,6 +93,7 @@ IQR(data$`Life expectancy`, na.rm=TRUE)
 ```{r}
 quantile(data$`Life expectancy`, na.rm=TRUE)
 quantile(data$`Life expectancy`, probs=c(0.2, 0.8), na.rm=TRUE)
+quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)
 ```
 
 # obtain summaries on subset of data
@@ -188,10 +189,24 @@ ggplot(data = LifeExpectancy,
 
 
 ```{r}
+boxplot(formula = LifeExpectancy$`Life expectancy` ~ LifeExpectancy$Year, data = LifeExpectancy)
 
 ```
 
 
 ```{r}
+LifeExpectancy$Over65 <- LifeExpectancy$`Life expectancy` > 65
 
+```
+
+```{r}
+LifeExpectancy$category <- "med"
+LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_low] <- "Low"
+LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_high] <- "High"
+
+```
+
+```{r}
+LifeExpectancy_low <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[1]
+LifeExpectancy_high <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[2]
 ```
