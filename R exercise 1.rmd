@@ -195,13 +195,13 @@ data$Over65 <- data$`Life expectancy` > 65
 ```
 
 ```{r}
-data$category <- "med"
-data$category [data$`Life expectancy`< LifeExpectancy_low] <- "Low"
-data$category [data$`Life expectancy`< LifeExpectancy_high] <- "High"
+# data$category <- "med"
+# data$category [data$`Life expectancy`< LifeExpectancy_low] <- "Low"
+# data$category [data$`Life expectancy`< LifeExpectancy_high] <- "High"
 
 ```
 
 ```{r}
-LifeExpectancy_low <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[1]
-LifeExpectancy_high <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[2]
+# LifeExpectancy_low <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[1]
+# LifeExpectancy_high <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[2]
 ```
