@@ -177,8 +177,13 @@ ggplot(data = LifeExpectancy,
   geom_point()+ggtitle("Relationship btwn LE and Percentage Expenditure") +facet_grid(.~LifeExpectancy$Status)
 ```
 
-```{r}
-
+```{r ggplot=plot, echo=FALSE}
+suppressPackageStartupMessages(library(ggplot2))
+ggplot(data = LifeExpectancy,
+       mapping = aes(x = LifeExpectancy$Status,
+                     y = LifeExpectancy$`Life expectancy`)) +
+  geom_point() +
+  facet_wrap(~ LifeExpectancy$Year)
 ```
 
 
