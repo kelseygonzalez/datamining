@@ -101,13 +101,13 @@ quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)
 
 ```{r}
 # install.packages("Hmisc")
-library(Hmisc)
+suppressPackageStartupMessages(library(Hmisc))
 describe(data)
 
 ```
 
 ```{r}
-library(dplyr)
+suppressPackageStartupMessages(library(dplyr))
 group_by(data, Country, Status) %>% summarise(nObs=n(), mA7=median(`Life expectancy`))
 
 ```
