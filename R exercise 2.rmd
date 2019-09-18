@@ -1,0 +1,17 @@
+---
+title: 'R exercise 2: Data Preprocessing'
+author: "Kelsey Gonzalez and Laura Werthmann"
+date: "September 17, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load the data 
+```{r}
+load("LifeExpectancyData.Rdata")
+# head(data)
+
+```
