@@ -25,7 +25,7 @@ Review of World Health Organization's Life Expectancy Data taken from [Kaggle](h
 We found this through the graphs: 
 ```{r ggplot=plot, echo=FALSE}
 suppressPackageStartupMessages(library(ggplot2))
-ggplot(data=LifeExpectancy,
+ggplot(data = LifeExpectancy,
        mapping = aes(x=LifeExpectancy$`Life expectancy`,
                      y=LifeExpectancy$GDP)) +
   geom_point() + ggtitle("Relationship btwn Life Expectancy and GDP")

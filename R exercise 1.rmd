@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
+
 Load the data 
 ```{r}
 load("LifeExpectancyData.Rdata")
@@ -205,3 +206,66 @@ data$Over65 <- data$`Life expectancy` > 65
 # LifeExpectancy_low <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[1]
 # LifeExpectancy_high <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[2]
 ```
+
+#Know Your Data Exercise 1
+Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
+
+##Required Questions
+
+1. What attributes are there in your data set?
+
++ Some attributes we found were based on Country economics-> GDP, Status, Total Expenditure, and Population demographics-> BMI, mortality, disease, and schooling.
+
+2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?
+
++We found that High GDP correlates to higher Life Expectancy Rates. The same goes for higher percentage of expenditure. 
+
+We found this through the graphs: 
+```{r ggplot=plot, echo=FALSE}
+suppressPackageStartupMessages(library(ggplot2))
+ggplot(data=LifeExpectancy,
+       mapping = aes(x=LifeExpectancy$`Life expectancy`,
+                     y=LifeExpectancy$GDP)) +
+  geom_point() + ggtitle("Relationship btwn Life Expectancy and GDP")
+  
+```
+
+```{r ggplot=plot, echo=FALSE}
+ggplot(data = LifeExpectancy,
+       aes(x=LifeExpectancy$`Life expectancy`,
+           y=LifeExpectancy$`percentage expenditure`)) +
+  geom_point()+ggtitle("Relationship btwn LE and Percentage Expenditure") +facet_grid(.~LifeExpectancy$Status)
+```
+
+and the status of the country (Developing/Developed) shows that more developed states have a higher mean of Life Expectancy.
+```{r}
+aggregate(LifeExpectancy$`Life expectancy`, list(LifeExpectancy$Status), mean, na.rm=TRUE)
+
+```
+
+3. Do you have numerical attributes that you might want to discretize? Try at least two methods and compare the differences.
+
++ Life Expectancy can be discretized, 
+
+#### Binary classification of Life Expectancy rates over 65
+```{r}
+LifeExpectancy$Over65 <- LifeExpectancy$`Life expectancy` > 65
+
+```
+#### Categorical classification of low, med, and high of Life Expectancy rates using 1/3 quartiles
+```{r}
+LifeExpectancy$category <- "med"
+LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_low] <- "Low"
+LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_high] <- "High"
+
+```
+
+```{r}
+LifeExpectancy_low <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[1]
+LifeExpectancy_high <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[2]
+```
+
+
+4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well is this approach work for your attributes?
+
++ 
