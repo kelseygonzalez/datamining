@@ -11,24 +11,91 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Load the data 
 ```{r}
+rm(list=ls())
+suppressPackageStartupMessages(require(dplyr))
 load("LifeExpectancyData.Rdata")
-# head(data)
-
+dplyr::glimpse(data)
 ```
 
 
-#Know Your Data Exercise 1
+#Data Preprocessing Exercise 2
 Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
 
+
+#String processing
+
+```{r}
+str(data$Status)
+data$Status = as.factor(data$Status)
+class(data$Status)
+```
+
+
+#dealing with unknown values: remove observations or columns with many NAs
+```{r}
+suppressPackageStartupMessages(require(dplyr))
+missing.value.rows <- filter(data, !complete.cases(data)) 
+missing.value.rows
+```
+how many NAs in each row? 
+```{r}
+# This function counts the number of NAs in a row.
+apply(data, 1, function(x) sum(is.na(x)))
+```
+how many NAs in each column? 
+```{r}
+sort(apply(data, 2, function(x) sum(is.na(x))))
+
+```
+
+Because of the high number of Hepatitis B cases missing, we will remove this column from our dataset. Our research questions do not pertain to Hepatitis.
+```{r}
+data = subset(data,select = -c(`Hepatitis B`))
+```
+
+
+
+We will gather the population and GDP for each country across the years using the gapminder data.
+```{r}
+data2 <- inner_join(data, gapminder, by = c("Year" = "year", "Country" = "country"))
+
+# test how well new and old pop are correlated (should be extremely high)
+data2$pop = as.numeric(data2$pop)
+cor(data2$Population, data2$pop)
+cor(data2$GDP, data2$gdpPercap)
+```
+
+
+drop observations with still more that 50% missing data
+```{r}
+data = data[,!sapply(df, function(x) mean(is.na(x)))>0.5]
+```
+
+
+
+#scaling and normalization
+```{r}
+
+```
+
+#discretizing variables
+```{r}
+
+```
+
+# Sampling
+```{r}
+
+```
 ##Required Questions
 
-1. What attributes are there in your data set?
+>1. What attributes are there in your data set?
 
-- Some attributes we found were based on Country economics-> GDP, Status, Total Expenditure, and Population demographics-> BMI, mortality, disease, and schooling.
+Some attributes we found were based on Country economics-> GDP, Status, Total Expenditure, and Population demographics-> BMI, mortality, disease, and schooling.
 
-2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?
+>2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?
 
-- We found that High GDP correlates to higher Life Expectancy Rates. The same goes for higher percentage of expenditure. 
+We found that High GDP correlates to higher Life Expectancy Rates. The same goes for higher percentage of expenditure. 
 
 We found this through the graphs: 
 ```{r ggplot=plot, echo=FALSE}
@@ -53,9 +120,9 @@ aggregate(data$`Life expectancy`, list(data$Status), mean, na.rm=TRUE)
 
 ```
 
-3. Do you have numerical attributes that you might want to discretize? Try at least two methods and compare the differences.
+>3. Do you have numerical attributes that you might want to discretize? Try at least two methods and compare the differences.
 
-+ Life Expectancy can be discretized, 
+Life Expectancy can be discretized, 
 
 #### Binary classification of Life Expectancy rates over 65
 ```{r}
@@ -78,6 +145,6 @@ LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_high] 
 
 
 
-4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well is this approach work for your attributes?
+>4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well is this approach work for your attributes?
 
 + 
