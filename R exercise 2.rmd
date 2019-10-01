@@ -11,7 +11,182 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Load the data 
 ```{r}
+rm(list=ls())
+suppressPackageStartupMessages(require(dplyr))
 load("LifeExpectancyData.Rdata")
-# head(data)
+dplyr::glimpse(data)
+```
+
+
+#Data Preprocessing Exercise 2
+Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
+
+
+#String processing
+
+```{r}
+str(data$Status)
+data$Status = as.factor(data$Status)
+class(data$Status)
+```
+
+
+#dealing with unknown values: remove observations or columns with many NAs
+```{r}
+suppressPackageStartupMessages(require(dplyr))
+missing.value.rows <- filter(data, !complete.cases(data)) 
+missing.value.rows
+```
+how many NAs in each row? 
+```{r}
+# This function counts the number of NAs in a row.
+apply(data, 1, function(x) sum(is.na(x)))
+```
+how many NAs in each column? 
+```{r}
+sort(apply(data, 2, function(x) sum(is.na(x))))
 
 ```
+
+Because of the high number of Hepatitis B cases missing, we will remove this column from our dataset. Our research questions do not pertain to Hepatitis.
+```{r}
+data = subset(data,select = -c(`Hepatitis B`))
+```
+
+
+
+We will gather the population and GDP for each country across the years using the gapminder data.
+```{r}
+suppressPackageStartupMessages(require(gapminder))
+data2 <- inner_join(data, gapminder, by = c("Year" = "year", "Country" = "country"))
+data2 = merge(x=data, y=gapminder, by.x = c("Year", "Country"), by.y = c("year", "country"))
+```
+
+
+```{r}
+# test how well new and old pop are correlated (should be extremely high)
+data2$pop = as.numeric(data2$pop)
+data_na_rm = na.omit(data2)
+cor(data_na_rm$Population, data_na_rm$pop)
+plot(data_na_rm$Population, data_na_rm$pop)
+```
+why is the correlation so low on the original data? 
+```{r}
+data_na_rm[data_na_rm$pop > 1.2e+09,]
+```
+It looks like the original data has some scaling issues of their population variable. Gapminder is consistent, so we will use pop from there and omit Population.
+```{r}
+data2 = subset(data2, select = -`Population`)
+```
+
+
+
+
+What about GDP?
+```{r}
+cor(data_na_rm$GDP, data_na_rm$gdpPercap)
+plot(data_na_rm$GDP, data_na_rm$gdpPercap)
+
+```
+It seems like the original GDP data is country GDP whereas gdpPercap is of course per capita. We will not omit GDP as it is different data, but probably we will rely on gdpPercap. 
+
+What about GDP?
+```{r}
+cor(data_na_rm$`Life expectancy`, data_na_rm$lifeExp)
+plot(data_na_rm$`Life expectancy`, data_na_rm$lifeExp)
+```
+The correlation is high and it looks like any values changed within the gapminder data are within the margin of error. Since our main data source is Life Expectancy (WHO), we will keep their life expectancy varaible and drop gapminder. 
+
+```{r}
+data2 = subset(data2, select = -`lifeExp`)
+```
+
+
+#scaling and normalization
+Most of our variables are zero inflated and/or right skewed. Let's take a few (infant deaths, GDP, Diphtheria) and normalize and scale them. 
+```{r}
+hist(data2$`infant deaths`)
+zscore = function(x){return((x-mean(x))/(sd(x)))}
+data2$infant_scaled = zscore(data2$`infant deaths`)
+data2 %>% select(data, zscore)
+```
+
+```{r}
+hist(data2$GDP)
+```
+
+```{r}
+hist(data2$Diphtheria)
+```
+
+#discretizing variables
+Let's create a discretized version of Life Expectancy. 
+```{r}
+
+```
+
+# Sampling
+```{r}
+
+```
+##Required Questions
+
+>1. What attributes are there in your data set?
+
+Some attributes we found were based on Country economics-> GDP, Status, Total Expenditure, and Population demographics-> BMI, mortality, disease, and schooling.
+
+>2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?
+
+We found that High GDP correlates to higher Life Expectancy Rates. The same goes for higher percentage of expenditure. 
+
+We found this through the graphs: 
+```{r ggplot=plot, echo=FALSE}
+suppressPackageStartupMessages(library(ggplot2))
+ggplot(data = data,
+       aes(x=data$`Life expectancy`,
+                     y=data$GDP)) +
+  geom_point() + ggtitle("Relationship btwn Life Expectancy and GDP")
+  
+```
+
+```{r ggplot=plot, echo=FALSE}
+ggplot(data = data,
+       aes(x=data$`Life expectancy`,
+           y=data$`percentage expenditure`)) +
+  geom_point()+ggtitle("Relationship btwn LE and Percentage Expenditure") +facet_grid(.~data$Status)
+```
+
+and the status of the country (Developing/Developed) shows that more developed states have a higher mean of Life Expectancy.
+```{r}
+aggregate(data$`Life expectancy`, list(data$Status), mean, na.rm=TRUE)
+
+```
+
+>3. Do you have numerical attributes that you might want to discretize? Try at least two methods and compare the differences.
+
+Life Expectancy can be discretized, 
+
+#### Binary classification of Life Expectancy rates over 65
+```{r}
+data$Over65 <- data$`Life expectancy` > 65
+
+```
+#### Categorical classification of low, med, and high of Life Expectancy rates using 1/3 quartiles
+
+```{r}
+LifeExpectancy_low <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[1]
+LifeExpectancy_high <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[2]
+```
+
+```{r}
+# LifeExpectancy$category <- "med"
+# LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_low] <- "Low"
+# LifeExpectancy$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_high] <- "High"
+
+```
+
+
+
+>4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well is this approach work for your attributes?
+
++ 
