@@ -59,27 +59,68 @@ We will gather the population and GDP for each country across the years using th
 ```{r}
 suppressPackageStartupMessages(require(gapminder))
 data2 <- inner_join(data, gapminder, by = c("Year" = "year", "Country" = "country"))
+data2 = merge(x=data, y=gapminder, by.x = c("Year", "Country"), by.y = c("year", "country"))
+```
 
+
+```{r}
 # test how well new and old pop are correlated (should be extremely high)
 data2$pop = as.numeric(data2$pop)
-cor(data2$Population, data2$pop)
-cor(data2$GDP, data2$gdpPercap)
+data_na_rm = na.omit(data2)
+cor(data_na_rm$Population, data_na_rm$pop)
+plot(data_na_rm$Population, data_na_rm$pop)
 ```
-
-
-drop observations with still more that 50% missing data
+why is the correlation so low on the original data? 
 ```{r}
-# data = data[,!sapply(df, function(x) mean(is.na(x)))>0.5]
+data_na_rm[data_na_rm$pop > 1.2e+09,]
+```
+It looks like the original data has some scaling issues of their population variable. Gapminder is consistent, so we will use pop from there and omit Population.
+```{r}
+data2 = subset(data2, select = -`Population`)
 ```
 
+
+
+
+What about GDP?
+```{r}
+cor(data_na_rm$GDP, data_na_rm$gdpPercap)
+plot(data_na_rm$GDP, data_na_rm$gdpPercap)
+
+```
+It seems like the original GDP data is country GDP whereas gdpPercap is of course per capita. We will not omit GDP as it is different data, but probably we will rely on gdpPercap. 
+
+What about GDP?
+```{r}
+cor(data_na_rm$`Life expectancy`, data_na_rm$lifeExp)
+plot(data_na_rm$`Life expectancy`, data_na_rm$lifeExp)
+```
+The correlation is high and it looks like any values changed within the gapminder data are within the margin of error. Since our main data source is Life Expectancy (WHO), we will keep their life expectancy varaible and drop gapminder. 
+
+```{r}
+data2 = subset(data2, select = -`lifeExp`)
+```
 
 
 #scaling and normalization
+Most of our variables are zero inflated and/or right skewed. Let's take a few (infant deaths, GDP, Diphtheria) and normalize and scale them. 
 ```{r}
+hist(data2$`infant deaths`)
+zscore = function(x){return((x-mean(x))/(sd(x)))}
+data2$infant_scaled = zscore(data2$`infant deaths`)
+data2 %>% select(data, zscore)
+```
 
+```{r}
+hist(data2$GDP)
+```
+
+```{r}
+hist(data2$Diphtheria)
 ```
 
 #discretizing variables
+Let's create a discretized version of Life Expectancy. 
 ```{r}
 
 ```
