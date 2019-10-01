@@ -103,32 +103,60 @@ data2 = subset(data2, select = -`lifeExp`)
 
 
 #scaling and normalization
-Most of our variables are zero inflated and/or right skewed. Let's take a few (infant deaths, GDP, Diphtheria) and normalize and scale them. 
+Most of our variables are zero inflated and/or right skewed. Let's take a few (infant deaths, GDP, Diphtheria) and normalize and scale them.
+
+Z-Score scaling of infant deaths 
 ```{r}
 hist(data2$`infant deaths`)
 zscore = function(x){return((x-mean(x))/(sd(x)))}
 data2$infant_scaled = zscore(data2$`infant deaths`)
-data2 %>% select(data, zscore)
+data2 %>% select(`infant deaths`, infant_scaled) %>% head()
+
+plot(density(data2$`infant deaths`))
+plot(density(data2$infant_scaled))
+
 ```
 
+
+Normalization of GDP Per Capita
 ```{r}
 hist(data2$GDP)
+data2$gdpPercaplog = log(data2$gdpPercap)
+
+plot(density(data2$gdpPercap))
+lines(density(data2$gdpPercaplog), add = TRUE)
+# they're on different scales, so you can't really see the differences. 
+
+plot(density(data2$gdpPercaplog))
+
 ```
+
+Normalize Diptheria using complete normalization
 
 ```{r}
 hist(data2$Diphtheria)
+
+data2$dipnormal = scale(data2$Diphtheria, center = TRUE, scale = TRUE)
+data2 %>% select(Diphtheria, dipnormal)
+
+plot(density(data2$Diphtheria, na.rm = TRUE))
+lines(density(data2$dipnormal, na.rm = TRUE), add = TRUE)
+
+
 ```
 
 #discretizing variables
-Let's create a discretized version of Life Expectancy. 
+Let's create a discretized version of Life Expectancy using clustering. 
 ```{r}
+set.seed(1)
+suppressPackageStartupMessages(library(sampling))
+s <- kmeans(data2$`Life expectancy`, 3)
 
+data2$lifecluster <- factor(s$cluster, labels = c(`1` = 'young', `2` = 'middle',`3` = 'high'), ordered = TRUE)
+plot(data2$`Life expectancy`, data2$lifecluster)
 ```
 
-# Sampling
-```{r}
 
-```
 ##Required Questions
 
 >1. What attributes are there in your data set?
