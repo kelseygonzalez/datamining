@@ -165,7 +165,14 @@ Some attributes we found were based on Country economics-> GDP, Status, Total Ex
 
 >2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?
 
-We found that High GDP correlates to higher Life Expectancy Rates. The same goes for higher percentage of expenditure. 
+```{r qqplot=plot, echo = FALSE}
+suppressPackageStartupMessages(library(car))
+qqPlot(data2$pop, main = "Life Expectancy QQ Plot")
+data2[48, "Population"] <-mean(data2$pop,  na.rm = TRUE)
+symnum(cor(data2[4:20], use = "complete.obs"))
+```
+
+We found that High GDP correlates to higher Life Expectancy Rates. The same goes for GDP and Percentage Expenditure. Under 5 deaths also correlates with infant deaths.  
 
 We found this through the graphs: 
 ```{r ggplot=plot, echo=FALSE}
@@ -217,4 +224,4 @@ LifeExpectancy_high <-quantile(data$`Life expectancy`, probs = c(1/3, 2/3), na.r
 
 >4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well is this approach work for your attributes?
 
-+ 
+

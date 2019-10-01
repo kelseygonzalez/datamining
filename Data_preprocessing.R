@@ -52,3 +52,4 @@ library(car)
 qqPlot(LifeExpectancyData$Population, main = "Life Expectancy QQ Plot")
 LifeExpectancyData[48, "population"] <-mean(LifeExpectancyData$Population, na.rm = TRUE)
 symnum(cor(LifeExpectancyData[4:20], use = "complete.obs"))
+
