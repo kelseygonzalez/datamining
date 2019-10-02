@@ -222,8 +222,8 @@ LifeExpectancy_high <-quantile(data2$`Life expectancy`, probs = c(1/3, 2/3), na.
 
 ```{r}
 data2$category <- "med"
-data2$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_low] <- "Low"
-data2$category [LifeExpectancy$`Life expectancy`< LifeExpectancy_high] <- "High"
+data2$category [data2$`Life expectancy`< LifeExpectancy_low] <- "Low"
+data2$category [data2$`Life expectancy`< LifeExpectancy_high] <- "High"
 
 ```
 
