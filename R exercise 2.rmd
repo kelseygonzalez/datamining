@@ -229,6 +229,11 @@ data2$category [data2$`Life expectancy`< LifeExpectancy_high] <- "High"
 
 
 
->4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well is this approach work for your attributes?
+>4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well does this approach work for your attributes?
 
+```{r}
+
+suppressPackageStartupMessages(library(data.tree))
+
+```
 
