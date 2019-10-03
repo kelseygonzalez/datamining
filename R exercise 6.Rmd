@@ -1,5 +1,5 @@
 ---
-title: 'R exercise 3: OLAP Operations in R'
+title: 'R exercise 6: Clustering'
 author: "Kelsey Gonzalez and Laura Werthmann"
 date: "October 3, 2019"
 output: html_document
@@ -8,4 +8,4 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-Due October 9th
+Due Nov 27
