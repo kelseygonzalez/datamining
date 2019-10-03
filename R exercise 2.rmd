@@ -18,11 +18,12 @@ dplyr::glimpse(data)
 ```
 
 
-#Data Preprocessing Exercise 2
+# Data Preprocessing Exercise 2  
 Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
 
 
-#String processing
+# String processing    
+Status is character class but it should be a factor. Let's convert it. 
 
 ```{r}
 str(data$Status)
@@ -31,17 +32,21 @@ class(data$Status)
 ```
 
 
-#dealing with unknown values: remove observations or columns with many NAs
+# dealing with unknown values: remove observations or columns with many NAs   
 ```{r}
 suppressPackageStartupMessages(require(dplyr))
 missing.value.rows <- filter(data, !complete.cases(data)) 
 missing.value.rows
 ```
-how many NAs in each row? 
-```{r}
+
+
+how many NAs in each row?  
+```{r R.options=list(max.print=5)}
 # This function counts the number of NAs in a row.
 apply(data, 1, function(x) sum(is.na(x)))
 ```
+
+
 how many NAs in each column? 
 ```{r}
 sort(apply(data, 2, function(x) sum(is.na(x))))
@@ -54,8 +59,7 @@ data = subset(data,select = -c(`Hepatitis B`))
 ```
 
 
-
-We will gather the population and GDP for each country across the years using the gapminder data.
+Because there is such a high occurence of missing Population data,we will merge in the gapminder dataset and match on coutnry and year.  
 ```{r}
 suppressPackageStartupMessages(require(gapminder))
 data2 <- inner_join(data, gapminder, by = c("Year" = "year", "Country" = "country"))
@@ -70,6 +74,7 @@ data_na_rm = na.omit(data2)
 cor(data_na_rm$Population, data_na_rm$pop)
 plot(data_na_rm$Population, data_na_rm$pop)
 ```
+
 why is the correlation so low on the original data? 
 ```{r}
 data_na_rm[data_na_rm$pop > 1.2e+09,]
@@ -88,6 +93,7 @@ cor(data_na_rm$GDP, data_na_rm$gdpPercap)
 plot(data_na_rm$GDP, data_na_rm$gdpPercap)
 
 ```
+
 It seems like the original GDP data is country GDP whereas gdpPercap is of course per capita. We will not omit GDP as it is different data, but probably we will rely on gdpPercap. 
 
 What about Life Expectancy?
@@ -95,6 +101,7 @@ What about Life Expectancy?
 cor(data_na_rm$`Life expectancy`, data_na_rm$lifeExp)
 plot(data_na_rm$`Life expectancy`, data_na_rm$lifeExp)
 ```
+
 The correlation is high and it looks like any values changed within the gapminder data are within the margin of error. Since our main data source is Life Expectancy (WHO), we will keep their life expectancy varaible and drop gapminder. 
 
 ```{r}
@@ -102,7 +109,7 @@ data2 = subset(data2, select = -`lifeExp`)
 ```
 
 
-#scaling and normalization
+# scaling and normalization  
 Most of our variables are zero inflated and/or right skewed. Let's take a few (infant deaths, GDP, Diphtheria) and normalize and scale them.
 
 Z-Score scaling of infant deaths 
@@ -137,7 +144,7 @@ Normalize Diptheria using complete normalization
 hist(data2$Diphtheria)
 
 data2$dipnormal = scale(data2$Diphtheria, center = TRUE, scale = TRUE)
-data2 %>% select(Diphtheria, dipnormal)
+data2 %>% select(Diphtheria, dipnormal) %>% head()
 
 plot(density(data2$Diphtheria, na.rm = TRUE))
 lines(density(data2$dipnormal, na.rm = TRUE), add = TRUE)
@@ -145,7 +152,7 @@ lines(density(data2$dipnormal, na.rm = TRUE), add = TRUE)
 
 ```
 
-#discretizing variables
+# discretizing variables  
 Let's create a discretized version of Life Expectancy using clustering. 
 ```{r}
 set.seed(1)
@@ -157,30 +164,32 @@ plot(data2$`Life expectancy`, data2$lifecluster)
 ```
 
 
-##Required Questions
+## Required Questions  
 
->1. What attributes are there in your data set?
+>1. What attributes are there in your data set?  
 
 Some attributes we found were based on Country economics-> GDP, Status, Total Expenditure, 
 and Population demographics-> BMI, mortality, disease, and schooling.
 
->2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?
+>2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?  
 
-```{r qqplot=plot, echo = FALSE}
+```{r qqplot=plot}
 suppressPackageStartupMessages(library(car))
-qqPlot(data2$`Life expectancy`, main = "Life Expectancy QQ Plot")
-data2[48, "Population"] <-mean(data2$pop,  na.rm = TRUE)
-
+# qqPlot(data2$`Life expectancy`, main = "Life Expectancy QQ Plot")
+# data2[48, "Population"] <- mean(data2$pop,  na.rm = TRUE)
+symnum(cor(data2[4:20], use = "complete.obs"))
 ```
 
-We found that GDP correlates fully with Percentage Expenditure; Under 5 deaths correlates with infant deaths; and schooling and Income composition of resources is .9 correlated. 
+We found that GDP correlates fully with Percentage Expenditure; 
+Under 5 deaths correlates with infant deaths; 
+and schooling and Income composition of resources is .9 correlated. 
+
 
 ```{r}
 suppressPackageStartupMessages(library(DMwR2))
 m = lm(data2$GDP~ data2$`percentage expenditure`, data=data2)
 summary(m)
 ```
-
 
 According to the model's strength, percentage expenditure is highly correlated to GDP. For example, its R-Squared results (0.945) and Adjusted R-Squared results (0.944) were above the typical coefficient strength (.8). 
 
@@ -208,22 +217,39 @@ aggregate(data2$`percentage expenditure`, list(data2$Status), mean, na.rm=TRUE)
 
 Life Expectancy can be discretized, 
 
-#### Binary classification of Life Expectancy rates over 65
+Categorical classification of low, med, and high of Life Expectancy rates using 3 cuts
 ```{r}
-data2$Over65 <- data2$`Life expectancy` > 65
+data2$category <- cut(data2$`Life expectancy`, 
+                              breaks = 3, 
+                              labels=c('young', 'middle', 'high'))
+dplyr::glimpse(data2$category)
+
+
+
 
 ```
-#### Categorical classification of low, med, and high of Life Expectancy rates using 1/3 quartiles
 
-```{r}
-LifeExpectancy_low <-quantile(data2$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[1]
-LifeExpectancy_high <-quantile(data2$`Life expectancy`, probs = c(1/3, 2/3), na.rm = TRUE)[2]
+
+earlier we binned life expectancy using clusters with the following code:
+```{r eval=FALSE}
+set.seed(1)
+suppressPackageStartupMessages(library(sampling))
+s <- kmeans(data2$`Life expectancy`, 3)
+
+data2$lifecluster <- factor(s$cluster, labels = c(`1` = 'young', `2` = 'middle',`3` = 'high'), ordered = TRUE)
+
+
+dplyr::glimpse(data2$lifecluster)
+summary(data2$lifecluster)
 ```
 
+Since we binned using two different methods, let's see how these methods compare in their binning. 
 ```{r}
-data2$category <- "med"
-data2$category [data2$`Life expectancy`< LifeExpectancy_low] <- "Low"
-data2$category [data2$`Life expectancy`< LifeExpectancy_high] <- "High"
+
+
+ggplot(data2, aes(`Life expectancy`, y = value, color = variable)) + 
+    geom_point(aes(y = category, col = "cut")) + 
+    geom_point(aes(y = lifecluster, col = "cluster"))
 
 ```
 
@@ -231,9 +257,5 @@ data2$category [data2$`Life expectancy`< LifeExpectancy_high] <- "High"
 
 >4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well does this approach work for your attributes?
 
-```{r}
-
-suppressPackageStartupMessages(library(data.tree))
-
-```
+We couldn't find any variables that could use concept hierarchy. 
 
