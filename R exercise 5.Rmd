@@ -8,4 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
+```
 Due Nov 6

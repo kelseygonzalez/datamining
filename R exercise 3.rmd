@@ -4,11 +4,24 @@ author: "Kelsey Gonzalez and Laura Werthmann"
 date: "October 3, 2019"
 output: html_document
 ---
-
+Due October 9th
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-Due October 9th
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
+```
+
+Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
+
+Load the data 
+```{r}
+rm(list=ls())
+suppressPackageStartupMessages(require(dplyr))
+load("LifeExpectancyData.Rdata")
+dplyr::glimpse(data)
+```
 
 
 ##  please generate 3-D cuboids
