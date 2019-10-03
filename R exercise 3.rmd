@@ -9,3 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 Due October 9th
+
+
+##  please generate 3-D cuboids
+
+
+
+##  What is 4-D or the base cuboid in this example?
