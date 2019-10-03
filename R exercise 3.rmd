@@ -1,0 +1,11 @@
+---
+title: 'R exercise 3: OLAP Operations in R'
+author: "Kelsey Gonzalez and Laura Werthmann"
+date: "October 3, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
