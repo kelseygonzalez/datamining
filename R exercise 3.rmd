@@ -19,11 +19,6 @@ Load the data
 ```{r}
 rm(list=ls())
 suppressPackageStartupMessages(require(dplyr))
-load("LifeExpectancyData.Rdata")
-data$Status = as.factor(data$Status)
-data = subset(data,select = -c(`Hepatitis B`))
-dplyr::glimpse(data)
-
 
 load("LifeExpectancyData2.Rdata")
 dplyr::glimpse(data2)
@@ -180,8 +175,7 @@ apply(revenue_cube, c("month", "loc"), FUN=function(x) sum(x, na.rm=TRUE))
 year x country x life expectancy 
 
 ```{r}
-test1  <-  subset(data, select = c(Year, Country, `Life expectancy`))
-unique(data$Year)
+test1  <-  subset(data2, select = c(Year, Country, `Life expectancy`))
 unique(test1$Country)
 unique(test1$Year)
 
@@ -191,7 +185,7 @@ unique(test1$Year)
 require(tidyr)
 test2 <- spread(test1, key="Year", value="Life expectancy")
 
-# This is as far as I got. need to separate by year.
+# This is as far as I got. need to separate by year to make a cube.
 ```
 
 
