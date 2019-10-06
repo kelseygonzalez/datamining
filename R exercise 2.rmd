@@ -64,6 +64,11 @@ Because there is such a high occurence of missing Population data,we will merge 
 suppressPackageStartupMessages(require(gapminder))
 data2 <- inner_join(data, gapminder_unfiltered, by = c("Year" = "year", "Country" = "country"))
 ```
+```{r}
+suppressPackageStartupMessages(require(dplyr))
+data3 <-inner_join(data, WB_pop_gdp, by = c("Year" = "Time", "Country" = "Country Name"))
+
+```
 
 
 ```{r}
