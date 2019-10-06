@@ -19,6 +19,12 @@ Load the data
 ```{r}
 rm(list=ls())
 suppressPackageStartupMessages(require(dplyr))
+load("LifeExpectancyData.Rdata")
+data$Status = as.factor(data$Status)
+data = subset(data,select = -c(`Hepatitis B`))
+dplyr::glimpse(data)
+
+
 load("LifeExpectancyData2.Rdata")
 dplyr::glimpse(data2)
 ```
@@ -171,6 +177,30 @@ apply(revenue_cube, c("month", "loc"), FUN=function(x) sum(x, na.rm=TRUE))
 >please generate 3-D cuboids
 
 
+year x country x life expectancy 
+
+```{r}
+test1  <-  subset(data, select = c(Year, Country, `Life expectancy`))
+unique(data$Year)
+unique(test1$Country)
+unique(test1$Year)
+
+# test2 = as.array(unlist(test1),dim=c(193,2,15))
+
+
+require(tidyr)
+test2 <- spread(test1, key="Year", value="Life expectancy")
+
+# This is as far as I got. need to separate by year.
+```
+
+
+
+roll up to continent 
+
 
 ##  Q2
 >What is 4-D or the base cuboid in this example?
+
+year x country x life expectancy x status 
+

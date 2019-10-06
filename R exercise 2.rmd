@@ -62,8 +62,7 @@ data = subset(data,select = -c(`Hepatitis B`))
 Because there is such a high occurence of missing Population data,we will merge in the gapminder dataset and match on coutnry and year.  
 ```{r}
 suppressPackageStartupMessages(require(gapminder))
-data2 <- inner_join(data, gapminder, by = c("Year" = "year", "Country" = "country"))
-data2 = merge(x=data, y=gapminder, by.x = c("Year", "Country"), by.y = c("year", "country"))
+data2 <- inner_join(data, gapminder_unfiltered, by = c("Year" = "year", "Country" = "country"))
 ```
 
 
@@ -137,6 +136,9 @@ lines(density(data2$gdpPercaplog), add = TRUE)
 plot(density(data2$gdpPercaplog))
 
 ```
+This normalization method doesn't seem to be particularly useful. 
+
+
 
 Normalize Diptheria using complete normalization
 
