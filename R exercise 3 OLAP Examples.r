@@ -1,31 +1,5 @@
----
-title: 'R exercise 3: OLAP Operations in R'
-author: "Kelsey Gonzalez and Laura Werthmann"
-date: "October 3, 2019"
-output: html_document
----
-Due October 9th
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r global_options, echo=FALSE}
-knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
-```
-
-Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
-
-Load the data 
-```{r}
-rm(list=ls())
-suppressPackageStartupMessages(require(dplyr))
-load("LifeExpectancyData2.Rdata")
-dplyr::glimpse(data2)
-```
-
-
-```{r}
 # based on: http://horicky.blogspot.com/2013/07/olap-operation-in-r.html
+# Provided by Hong Cui
 
 # This exercise illustrates the concepts of data cube and OLAP operations
 # The implementation presented here is only good for small dataset that can be fit in to the memory of a computer.
@@ -163,14 +137,3 @@ apply(revenue_cube, c("month", "loc"), FUN=function(x) sum(x, na.rm=TRUE))
 # Students: What is 4-D or the base cuboid in this example?
   
   
-
-```
-
-
-## Q1
->please generate 3-D cuboids
-
-
-
-##  Q2
->What is 4-D or the base cuboid in this example?
