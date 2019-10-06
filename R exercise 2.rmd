@@ -160,6 +160,7 @@ suppressPackageStartupMessages(library(sampling))
 s <- kmeans(data2$`Life expectancy`, 3)
 
 data2$lifecluster <- factor(s$cluster, labels = c(`1` = 'young', `2` = 'middle',`3` = 'high'), ordered = TRUE)
+rm(s)
 plot(data2$`Life expectancy`, data2$lifecluster)
 ```
 
@@ -175,8 +176,6 @@ and Population demographics-> BMI, mortality, disease, and schooling.
 
 ```{r qqplot=plot}
 suppressPackageStartupMessages(library(car))
-# qqPlot(data2$`Life expectancy`, main = "Life Expectancy QQ Plot")
-# data2[48, "Population"] <- mean(data2$pop,  na.rm = TRUE)
 symnum(cor(data2[4:20], use = "complete.obs"))
 ```
 
@@ -187,8 +186,7 @@ and schooling and Income composition of resources is .9 correlated.
 
 ```{r}
 suppressPackageStartupMessages(library(DMwR2))
-m = lm(data2$GDP~ data2$`percentage expenditure`, data=data2)
-summary(m)
+summary(lm(data2$GDP~ data2$`percentage expenditure`, data=data2))
 ```
 
 According to the model's strength, percentage expenditure is highly correlated to GDP. For example, its R-Squared results (0.945) and Adjusted R-Squared results (0.944) were above the typical coefficient strength (.8). 
@@ -259,3 +257,7 @@ ggplot(data2, aes(`Life expectancy`, y = value, color = variable)) +
 
 We couldn't find any variables that could use concept hierarchy. 
 
+```{r}
+save(data2, file = "LifeExpectancyData2.RData")
+
+```

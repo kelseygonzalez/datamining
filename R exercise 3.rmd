@@ -16,10 +16,11 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
 
 Load the data 
+Load the data 
 ```{r}
 rm(list=ls())
 suppressPackageStartupMessages(require(dplyr))
-load("LifeExpectancyData.Rdata")
+load("LifeExpectancyData2.Rdata")
 dplyr::glimpse(data)
 ```
 
