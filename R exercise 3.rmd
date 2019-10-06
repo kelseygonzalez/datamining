@@ -188,8 +188,8 @@ unique(test1$Year)
 # test2 = as.array(unlist(test1),dim=c(193,2,15))
 
 
-require(tidyr)
-test2 <- spread(test1, key="Year", value="Life expectancy")
+# require(tidyr)
+#test2 <- spread(test1, key="Year", value="Life expectancy")
 
 # This is as far as I got. need to separate by year.
 ```
