@@ -1,4 +1,10 @@
-test3 <- array(split(data2, data2$Year))
+rm(list=ls())
+suppressPackageStartupMessages(require(dplyr))
+load("LifeExpectancyData2.Rdata")
+
+
+
+
 
 require(dplyr)
 # from https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes
@@ -14,5 +20,15 @@ dfcountry <- left_join(x = countries,
                    by = c("Country" = "name"))
 
 
-test3 %>% sapply(continent, country)
-  
+data2 <- left_join(x = data2,
+                   y = dfcountry[,c("Country","region")], 
+                   by = c("Country" = "Country"))
+
+
+test3 <- array(split(data2, data2$Year))
+
+rollup <- data2 %>% group_by(Year,region) %>% summarise(meancontinent = mean(`Life expectancy`))
+continentcuboid <- array(split(rollup, rollup$Year))
+
+
+apply(c("Life expectancy", "Adult Mortality", "infant deaths"), FUN=function(x) mean(x, na.rm=TRUE)))
