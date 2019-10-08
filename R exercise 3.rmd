@@ -16,13 +16,27 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
 
 Load the data 
+
+```{r}
+suppressPackageStartupMessages(library(rio))
+convert("WB_pop_gdp.csv", "WB_pop_gdp.rda")
+load('WB_pop_gdp.rda')
+Time <- as.numeric(as.character(x$Time))
+```
+
+```{r}
+suppressPackageStartupMessages(require(dplyr))
+data3 <-inner_join(data, x, by = c("Year" = "Time", "Country" = "Country Name"))
+
+```
+
 ```{r}
 rm(list=ls())
 suppressPackageStartupMessages(require(dplyr))
 load("LifeExpectancyData.Rdata")
-data$Status = as.factor(data$Status)
-data = subset(data,select = -c(`Hepatitis B`))
-dplyr::glimpse(data)
+data3$Status = as.factor(data3$Status)
+data = subset(data3,select = -c(`Hepatitis B`))
+dplyr::glimpse(data3)
 
 
 load("LifeExpectancyData2.Rdata")
