@@ -6,7 +6,7 @@ Code and r scripts are created for [Hong Cui's](https://ischool.arizona.edu/peop
 
 [Exercise 1](https://kelseygonzalez.github.io/datamining/R-exercise-1.html)    
 [Exercise 2](https://kelseygonzalez.github.io/datamining/R-exercise-2.html)  
-Exercise 3  
+[Exercise 3](https://kelseygonzalez.github.io/datamining/R-exercise-3.html)  
 Exercise 4  
 Exercise 5  
 Exercise 6  
