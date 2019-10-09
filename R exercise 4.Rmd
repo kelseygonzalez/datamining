@@ -12,4 +12,225 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r global_options, echo=FALSE}
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 ```
-Due October 23rd
+
+> Due October 23rd <
+
+
+
+
+
+_____________________________________
+
+
+will use packages:
+arules: Provides the infrastructure for representing, manipulating and analyzing transaction data and patterns (frequent itemsets and association rules). Also provides C implementations of the association mining algorithms Apriori and Eclat. More see https://cran.r-project.org/web/packages/arules/arules.pdf 
+
+arulesViz: Extends package 'arules' with various visualization techniques for association rules and itemsets. The package also includes several interactive visualizations for rule exploration. More see https://cran.r-project.org/web/packages/arulesViz/vignettes/arulesViz.pdf
+
+dplyr: A data manipulation grammar for working with data frame like objects, both in memory and out of memory. We used some of the command from this package, for more see https://cran.r-project.org/web/packages/dplyr/dplyr.pdf
+
+*********  Package arules requires R 3.4 and above ********
+Data Mining with R book used the Boston housing dataset as an example for association rule learning. Indeed, association rule learning can be used beyond transaction data mining. 
+Boston housing dataset description is at https://www.cs.toronto.edu/~delve/data/boston/bostonDetail.html
+And specifically, the variables in this dataset include:
+CRIM - per capita crime rate by town
+ZN - proportion of residential land zoned for lots over 25,000 sq.ft.
+INDUS - proportion of non-retail business acres per town.
+CHAS - Charles River dummy variable (1 if tract bounds river; 0 otherwise)
+NOX - nitric oxides concentration (parts per 10 million)
+RM - average number of rooms per dwelling
+AGE - proportion of owner-occupied units built prior to 1940
+DIS - weighted distances to five Boston employment centres
+RAD - index of accessibility to radial highways
+TAX - full-value property-tax rate per $10,000
+PTRATIO - pupil-teacher ratio by town
+B - 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town
+LSTAT - % lower status of the population
+MEDV - Median value of owner-occupied homes in $1000's
+
+After going through this exercise, perform association rule learning on your dataset. If you have text dataset, construct a document-term matrix from the text, then convert that to transaction data forma, you can treat the list of terms as items and mine association among the terms. 
+Turn in both the R code for the exercise, and the R code for the practice using your datasets. You want to explore different thresholds, use the interactive vis tools provided by arulesViz, and find and report at least two interesting association rules from your dataset. 
+Optional: If you would like to experience association rule mining using a transactional dataset, you can also try to use the Groceries dataset that comes with the arules package. Just say data(Groceries) to load the Groceries dataset after loading arules.
+
+```{r}
+install.packages("arules")
+library (arules)
+
+install.packages("dplyr")
+library(dplyr)
+```
+
+```{r}
+data(Boston, package = "MASS")
+#association rules learning use categorical data. So the first step is transforming variables to factors.
+ 
+#find classes of each of the column
+lapply(Boston, class) #lapply is similar to apply, but takes a list as input and output a list
+
+#all variables are ‘numeric’, really?
+#use boxplot, histogram, and/or bar chart to review each of the variables
+#you will see chas, rad are likely categorical variables disguised as numerical variables
+#show unique values in the variables chas and rad, confirming they are not continuous variables
+
+unique(Boston$chas)
+
+unique(Boston$rad)
+```
+
+```{r}
+#make these two variables factors
+b <- Boston
+b$chas <- factor(Boston$chas, labels=c("river", "noriver"))
+b$rad <- factor(Boston$rad)
+
+# discretize all remaining numerical variables
+# cut black first, to give it meaningful labels to aid interpretation
+
+b$black <- cut(Boston$black, breaks=4, labels=c(">31.5%", "18.5-31.5%", "8-18.5%", "<8%"))
+
+#now discretize all other numerical variables into 4 equal-width bins -- this is an arbitrary decision. Ideally expert domain knowledge should be consulted to bin, or try a few different ways, such as equal-depth. Also each variable can be binned differently. 
+discr <-function(x) cut(x, breaks=4, labels=c("low", "medLow", "medHigh", "High"))
+```
+
+```{r}
+# apply function discr on all numerical variables (“-c()” to exclude variables that have been converted to factors), then bind the newly cut variables back.
+b <- select(b, -c("chas", "rad", "black")) %>% mutate_all(funs(discr)) %>% bind_cols(select(b, c("chas", "rad", "black")))
+
+dim(b)
+            
+
+#transform the dataframe b to a transactions dataset, where each row is described by a set of **binary** variables (this is “bitmap indexing” we learned in Chapter 4 in the textbook)  
+
+b <- as(b, "transactions") #transactions data are often very large and sparse, directly looking at it won’t give your much information.You can see how the columns are constructed by using colnames(), or see a summary() of it. To see the records, use inspect(): inspect(b[1:9]) show the first 9 transactions. 
+colnames(b)
+
+summary(b)
+
+
+inspect(b[1:9]) #a transaction consists of a set of items and a transaction ID. Still have questions on transactions, check out another small example included at the end of this exercise. 
+```
+
+```{r}
+#show frequent items with minsup >= 0.3. Cex.names indicates the size of axis names
+itemFrequencyPlot(b, support=0.3, cex.names=0.8)
+
+ars <- apriori(b, parameter = list(support=0.025, confidence=0.75))
+
+summary(ars)
+```
+
+```{r}
+#Say we are interested in the association between pollution (NOX) and property value (MEDV). Find top 5 rules by confidence with “medv=High” attribute on the right side (rhs)
+inspect(head(subset(ars, subset=rhs %in% "medv=High"), 5, by="confidence"))
+ 
+
+inspect(head(subset(ars, subset=rhs %in% "medv=low"), 5, by="confidence"))
+
+#use “|” (or) to include other conditions 
+inspect(head(subset(ars, subset=rhs %in% "nox=High" | lhs %in% "nox=High"), 5, by="confidence"))
+
+inspect(head(subset(ars, subset=rhs %in% "medv=High"), 5, by="support"))
+```
+
+```{r}
+#other ways to subset
+#find rules generated from maximal/closed itemsets: 
+#maximal itemsets
+inspect(head(subset(ars, subset=is.maximal(ars), 5, by="confidence")))
+```
+
+```{r}
+# need to find freq itemsets to find closed itemsets:
+freq.itemsets <- apriori(b, parameter=list(target="frequent itemsets", support=0.025))
+
+inspect(head(subset(ars, subset=is.closed(freq.itemsets), 5, by="confidence")))
+```
+
+```{r}
+#find closed itemsets
+closed = freq.itemsets[is.closed(freq.itemsets)]
+summary(closed) #inspect(closed) list all closed itemsets
+```
+
+```{r}
+#find maximal itemsets
+maximal = freq.itemsets[is.maximal(freq.itemsets)]
+summary(maximal)
+```
+
+```{r}
+#check shorter rules
+inspect(head(subset(ars, subset= size(lhs)<5 & size(lhs) >1), 5, by="support"))
+
+#note the above rules have high support and confidence but low lift.
+inspect(head(subset(ars, subset= size(lhs)<5 & size(lhs) >1 & lift 2), 5, by="support"))
+```
+
+```{r}
+#arules computes many different kinds of interestMeasure besides support, confidence, and lift. See the help page on interestMeasure for more examples. 
+
+#visualization of association rules
+install.packages("arulesViz")
+library(arulesViz)
+
+
+#this interactive plot may crash R Studio. Save your project now before run the command below. 
+plot(ars, engine="interactive")
+``` 
+
+```{r}
+#click the stop sign or the ESC key to terminate an interactive session. 
+#Controls provided by Engine=”interactive” do not responding on my laptop, but engine="htmlwidget" does and supports a level of interactive exploration of the rule set. 
+#You can filter your rules to a smaller set and then use the interactive exploration to identify interesting rules. 
+plot(ars, engine="htmlwidget")
+```
+
+
+```{r}
+#grouped 
+somerules <- subset(ars, subset=size(lhs) & confidence>0.90 & support>0.5)
+plot(somerules, method="grouped")
+
+
+plot(somerules, method="matrix")
+
+#graph
+plot(somerules, method="graph", engine="htmlwidget")
+```
+
+
+```{r}
+#Illustrate what is “transactions” data structure using a small example:
+
+d <- data.frame(site=c("tucson", "pheonix"), season=c("spring", "summer"), price=c("high", "low"))
+d
+```
+
+```{r}
+#convert dataframe to transactions
+d_t <-as(d, "transactions")
+d_t
+```
+
+
+```{r}
+#Each row in the dataframe is converted to one transaction (2 transactions total).
+#What are the 6 items? See the red part below
+summary(d_t)
+
+
+#why density = 0.5
+#Because the bitmap index is half empty
+```
+
+```{r}
+#check out the transaction records
+inspect(d_t[1:2])       
+#each transaction has one itemset, and in this example, the itemset for transaction 1 is ‘site=tucson, season=spring, price=high’. 
+```
+
+
+>[REQUIRED]
+Exercises on your data set: 
+Mine association rules from your dataset. 
+Discuss a couple of interesting rules mined. 
