@@ -53,4 +53,4 @@ rollup <- data2 %>% group_by(Year, region) %>% summarise(meancontinent = mean(`L
  continentcuboid <- array(split(rollup, rollup$Year))
 ```
 
-The base cubiod of this example would be possibly adding population with gender and age groups.
+The 4-d cubiod of this example would be possibly adding population with gender and age groups.
