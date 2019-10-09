@@ -1,18 +1,32 @@
+---
+title: "Cuboid_R_exercise3"
+author: "Laura.w"
+date: "10/9/2019"
+output: html_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First we'll load the original data:
+```{r}
 rm(list=ls())
 suppressPackageStartupMessages(require(dplyr))
 load("LifeExpectancyData2.Rdata")
+```
+Then we aquire data to include continent values and make our cuboid navigation easier.
 
-
-
-
-
+```{r}
 require(dplyr)
 # from https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes
 library(RCurl)
 ISO3166 <- read.csv(text = (getURL("https://raw.githubusercontent.com/lukes/ISO-3166-Countries-with-Regional-Codes/master/all/all.csv")))
 
+```
 
+We created a country data frame to make the data join more easily, and then joined them by country("country", "name"), while adding the continent ("region")
+```{r}
 countries <- as.data.frame(unique(data2$Country))
 colnames(countries) <- "Country" 
 countries$Country <- as.character(countries$Country)
@@ -26,12 +40,17 @@ data2 <- left_join(x = data2,
                    y = dfcountry[,c("Country","region")], 
                    by = c("Country" = "Country"))
 
+```
 
+Now we create a cuboid with dimensions, country, year, and status. 
+```{r}
 cntrycuboid <- array(split(data2, data2$Year))
+```
 
-sort(apply(data2, 2, function(x) sum(is.na(x))))
-
-
+We then roll-up to view the continent level of the cuboid
+```{r}
 rollup <- data2 %>% group_by(Year, region) %>% summarise(meancontinent = mean(`Life expectancy`))
  continentcuboid <- array(split(rollup, rollup$Year))
+```
 
+The base cubiod of this example would be 
