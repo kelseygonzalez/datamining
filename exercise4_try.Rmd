@@ -1,0 +1,105 @@
+---
+title: "exercise_4_try2"
+author: "Laura.w"
+date: "10/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+suppressPackageStartupMessages("arules")
+library(arules)
+```
+
+```{r}
+suppressPackageStartupMessages("dplyr")
+library(dplyr)
+```
+
+```{r}
+data(Boston, package = "MASS")
+```
+
+```{r}
+lapply(Boston, class)
+```
+
+```{r}
+unique(Boston$chas)
+```
+```{r}
+unique(Boston$rad)
+```
+```{r}
+b <- Boston
+```
+
+```{r}
+b$chas <- factor(Boston$chas, labels = c("river", "noriver"))
+b$rad <- factor(Boston$rad)
+```
+
+```{r}
+b$black <- cut(Boston$black, breaks = 4, labels = c(">31.5%", "18.5-31.5%", "8-18.5%", "<8%"))
+```
+
+```{r}
+discrt <-function(x) cut(x, breaks = 4, labels = c("low", "medlow", "medhigh", "High"))
+
+```
+
+```{r}
+b <- select(b, -c("chas", "rad", "black")) %>%
+  mutate_all(funs(discrt)) %>%
+  bind_cols(select(b, c("chas", "rad", "black")))
+
+dim(b)
+
+summary(b)
+
+
+b <- as(b, "transactions")
+
+colnames(b)
+
+summary(b)
+
+
+inspect(b[1:9])
+```
+
+```{r}
+colnames(b)
+```
+
+```{r}
+summary(b)
+```
+
+```{r}
+inspect(b[1:9])
+```
+
+```{r}
+itemFrequencyPlot(b, support=.3, cex.names=.8)
+```
+
+```{r}
+ars <- apriori(b, parameter = list(support=.025, confidence=.75))
+```
+
+```{r}
+summary(ars)
+```
+
+```{r}
+inspect(head(subset(ars, subset=rhs %in% "medv=High"), 5, by="confidence"))
+```
+
+```{r}
+
+```
