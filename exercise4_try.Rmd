@@ -101,5 +101,22 @@ inspect(head(subset(ars, subset=rhs %in% "medv=High"), 5, by="confidence"))
 ```
 
 ```{r}
+inspect(head(subset(ars, subset=rhs %in% "medv=low"), 5, by="confidence"))
+```
+
+```{r}
+ inspect(head(subset(ars, subset=rhs %in% "nox=High" | lhs %in% "nox=High")))
+```
+
+```{r}
+inspect(head(subset(ars, subset=rhs %in% "medv=High"), 5, by="support"))
+```
+
+```{r}
+inspect(head(subset(ars, subset=is.maximal(ars), 5, by="confidence")))
+```
+
+```{r}
+freq.itemsets <- apriori(b, parameter = list(target="frequent itemsets", support=.025))
 
 ```
