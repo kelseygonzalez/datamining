@@ -1,7 +1,7 @@
 ---
 title: 'R exercise 5: Classification'
 author: "Kelsey Gonzalez and Laura Werthmann"
-date: "October 3, 2019"
+date: "Due Nov 6, 2019"
 output: html_document
 ---
 
@@ -12,4 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r global_options, echo=FALSE}
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 ```
-Due Nov 6
+
+
+[REQUIRED]
+Exercises on your data set: 
+1.	Build a decision tree (regression or classification) and use one ensemble method on your own dataset.
+2.	List at least two interesting rules from the decision tree your generated. 
+3.	Does the ensemble method improve the performance on your dataset?
