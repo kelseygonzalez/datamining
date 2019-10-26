@@ -13,9 +13,124 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 ```
 
+First we'll download the necessary packages, libraries and data.
+```{r}
+library(tidyverse)
+library(rpart)
+library(rpart.plot)
+library(DMwR2)
+library(rsample)
+library(adabag)
+library(ipred)
+library(randomForest)
+library(gbm)
 
-[REQUIRED]
+
+
+options(scipen = 999)
+```
+
+Load data
+```{r}
+rm(list=ls())
+load("LifeExpectancyData_3.Rdata")
+data$Status = as.factor(data$Status)
+data$Year = as.factor(data$Year)
+data$Country = as.factor(data$Country)
+
+
+data$Life <- cut(data$`Life expectancy`, 
+                              breaks = 3, 
+                              labels=c('low LE', 'middle LE', 'high LE'))
+data$infantmort <- cut(data$`infant deaths`, 
+                              breaks = 3, 
+                              labels=c('low_infant', 'middle_infant', 'high_infant'))
+data$expenditure <- cut(data$`Total expenditure`, 
+                              breaks = 3, 
+                              labels=c('low_expenditure','med_expenditure', 'high_expenditure'))
+data$pop <- cut(data$Population, 
+                              breaks = 3, 
+                              labels=c('low_pop','med_pop', 'high_pop'))
+data$bmi <- cut(data$BMI, 
+                              breaks = 3, 
+                              labels=c('low_BMI','med_BMI', 'high_BMI'))  
+data$gdp <- cut(data$GDP, 
+                              breaks = 3, 
+                              labels=c('low_GDP','med_GDP', 'high_GDP'))  
+data$alcohol <- cut(data$Alcohol, 
+                              breaks = 3, 
+                              labels=c('low_alc','med_alc', 'high_alc'))  
+
+drops <- c("Alcohol",
+           "percentage expenditure",
+           "BMI",
+           "GDP",
+           "Diphtheria",
+           "Life expectancy",
+           "Measles",
+           "infant deaths",
+           "Total expenditure", 
+           "thinness  1-19 years",  
+           "thinness 5-9 years", 
+           "Population", 
+           "HIV/AIDS", 
+           "Polio",
+           "under-five deaths",
+           "Adult Mortality",
+           "Income composition of resources",
+           "Schooling")
+data <- data[ , !(names(data) %in% drops)]
+```
+____
+#[REQUIRED]
 Exercises on your data set: 
-1.	Build a decision tree (regression or classification) and use one ensemble method on your own dataset.
-2.	List at least two interesting rules from the decision tree your generated. 
-3.	Does the ensemble method improve the performance on your dataset?
+## 1.	Build a decision tree (regression or classification) and use one ensemble method on your own dataset.
+
+
+### classification 
+
+#### build a classification tree
+
+#### plot the classification trees
+____
+
+### traing and test data
+
+#### build a classification tree
+
+#### plot the classification trees
+____
+
+### Numerican Prediction 
+
+Create training (70%) and test (30%) sets for the data
+
+
+#### tune the model
+try out different combinations of minsplit and maxdepth values and compare the models
+
+### Ensemble methods for classification and regression
+
+### AdaBoost
+offers bagging and boosting, both are for classification (not regression)
+
+
+### boosting
+iteratively add new models to the ensemble, each model tries to overcome the errors made by the previous model
+
+
+### bagging
+learn trees on boostrapped samples using all variables
+
+### Another algorithm
+RandomForest, classification and regression
+
+### Another algorithm
+Gradient boosting classification and regression. like AdaBoost, but use gradient descent to address the current errors. Can overfit, so using cross-validation is very important (cv.folds)
+____
+
+
+##2. List at least two interesting rules from the decision tree your generated. 
+
+____
+## 3. Does the ensemble method improve the performance on your dataset?
