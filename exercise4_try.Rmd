@@ -2,7 +2,7 @@
 title: "exercise_4_try2"
 author: "Laura.w"
 date: "10/23/2019"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -101,7 +101,8 @@ itemFrequencyPlot(b, support=.3, cex.names=.8)
 
 Now we're going to apply the aprior method to the b dataset with a .025% support and 75% confidence, which gives us a minimum support count of 12 and 10 subsets before reaching a maximum.
 ```{r}
-ars <- apriori(b, parameter = list(support=.025, confidence=.75))
+ars <- apriori(b, parameter = list(support=0.025, confidence=.75))
+
 ```
 
 We can get a summary of the data that includes the number of (x) left-hand-side and (y)right-hand-side rules that satisfy our support and confidence constraints.
@@ -172,7 +173,7 @@ first we'll review the interactive scatter plot for all 408638 rules.
 ```{r}
 suppressPackageStartupMessages(install.packages("arulesViz"))
 library(arulesViz)
-plot(ars, engine = "htmlwidget", jitter = 0)
+plot(ars, engine = "interactive")
 ```
 
 Now we'll look at a grouped matrix using new constraints. We use this to compare the support and lift association of lhs and rhs.
