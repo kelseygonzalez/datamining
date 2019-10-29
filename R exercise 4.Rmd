@@ -273,7 +273,7 @@ inspect(head(subset(ars, subset=is.maximal(ars), 5, by="support")))
 inspect(head(subset(ars, subset=rhs %in% "Life=low LE"), 5, by="support"))
 inspect(head(subset(ars, subset=rhs %in% "Life=middle LE"), 5, by="support"))
 inspect(head(subset(ars, subset=rhs %in% "Life=high LE"), 5, by="support"))
-
+# no rules associated with these
 ```
 
 
@@ -317,6 +317,14 @@ plot(somerules, method="graph", engine="htmlwidget")
 
 
 ### Discuss a couple of interesting rules mined. 
+
+The Association rules produced from our data set have quite low lift, meaning the rules aren't relatively important. Whereas in the Boston dataset with lifts of over 2, our own dataset only show a maximum lift of around 1.2. 
+
+In addition, our main variable of interest, life expectancy, has very few rules with higher support. When it does show up (with low support), it associated with low infant mortality, low gdp, and in developing countries. However, the stronger rules below are more associated with infant mortality rates than life expectancy.  
+
+The Association rules produced from our data set have quite low lift, meaning the rules aren't relatively important. Whereas in the Boston dataset with lifts of over 2, our own dataset only show a maximum lift of around 1.2. In addition, our main variable of interest, life expectancy, has very few rules with higher support. 
+
+
 Rule 1
 {Status=Developing, infantmort=low_infant, expenditure=low_expenditure} => {alcohol=low_alc}  
 support: 0.385  
