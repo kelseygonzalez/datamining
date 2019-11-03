@@ -78,6 +78,8 @@ drops <- c("Alcohol",
            "Income composition of resources",
            "Schooling")
 data <- data[ , !(names(data) %in% drops)]
+
+write.csv(data, file = "LifeExpectancyData_all_cat.Rdata")
 ```
 ____
 #[REQUIRED]
