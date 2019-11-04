@@ -25,8 +25,6 @@ library(ipred)
 library(randomForest)
 library(gbm)
 
-
-
 options(scipen = 999)
 ```
 
@@ -80,13 +78,36 @@ drops <- c("Alcohol",
            "Income composition of resources",
            "Schooling")
 data <- data[ , !(names(data) %in% drops)]
+
+write.csv(data, file = "LifeExpectancyData_all_cat.Rdata")
 ```
 ____
 #[REQUIRED]
 Exercises on your data set: 
 ## 1.	Build a decision tree (regression or classification) and use one ensemble method on your own dataset.
 
+First, divide the data into 75% data for training, and 25% for test
+```{r}
+train_rows = sample(1:nrow(data), 0.75*nrow(data))
+train = data[train_rows, ]
+test = data[-train_rows, ]
+prop.table(table(data$Life))
+```
 
+```{r}
+set.seed(1234)
+#doesn't work
+
+rpart_tree_full <- rpart(
+  formula = Life ~ .,
+  data = train,
+  cp = 0,
+  parms = list(prior = c(0.02, 0.26, 0.19, 0.02, 0.01, 0.50), split="information"),
+  minsplit = 2,
+  method  = "class"
+)
+
+```
 ### classification 
 
 #### build a classification tree
