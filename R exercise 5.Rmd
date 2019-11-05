@@ -14,7 +14,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 ```
 
 First we'll download the necessary packages, libraries and data.
-```{r}
+```{r echo=FALSE}
 library(tidyverse)
 library(rpart)
 library(rpart.plot)
@@ -24,6 +24,10 @@ library(adabag)
 library(ipred)
 library(randomForest)
 library(gbm)
+library(performanceEstimation)
+library(e1071)
+library(nnet)
+
 
 options(scipen = 999)
 ```
@@ -37,9 +41,10 @@ data$Year = as.factor(data$Year)
 data$Country = as.factor(data$Country)
 
 
-data$Life <- cut(data$`Life expectancy`, 
-                              breaks = 3, 
-                              labels=c('low LE', 'middle LE', 'high LE'))
+# data$Life <- cut(data$`Life expectancy`, 
+#                               breaks = 3, 
+#                               labels=c('low LE', 'middle LE', 'high LE'))
+data$Life <- data$`Life expectancy`
 data$infantmort <- cut(data$`infant deaths`, 
                               breaks = 3, 
                               labels=c('low_infant', 'middle_infant', 'high_infant'))
@@ -79,7 +84,7 @@ drops <- c("Alcohol",
            "Schooling")
 data <- data[ , !(names(data) %in% drops)]
 
-write.csv(data, file = "LifeExpectancyData_all_cat.Rdata")
+# write.csv(data, file = "LifeExpectancyData_all_cat.Rdata")
 ```
 ____
 #[REQUIRED]
@@ -91,23 +96,104 @@ First, divide the data into 75% data for training, and 25% for test
 train_rows = sample(1:nrow(data), 0.75*nrow(data))
 train = data[train_rows, ]
 test = data[-train_rows, ]
-prop.table(table(data$Life))
 ```
 
 ```{r}
 set.seed(1234)
-#doesn't work
-
-rpart_tree_full <- rpart(
+m1 <- rpart(
   formula = Life ~ .,
-  data = train,
-  cp = 0,
-  parms = list(prior = c(0.02, 0.26, 0.19, 0.02, 0.01, 0.50), split="information"),
-  minsplit = 2,
-  method  = "class"
-)
+  data    = train,
+  cp   = 0.01,
+  method  = "anova"
+  )
+prp(m1, type=1, extra=101, roundint = FALSE)
+
+#In the plot, y-axis is cross validation error, lower x-axis is cost complexity (α or cp) value, upper x-axis is the number of terminal nodes (tree size) 
+plotcp(m1)
+#We find diminishing returns after 6 terminal nodes.
+#You may also notice the dashed line which goes through the point tree size= 6.
+
+
 
 ```
+```{r}
+m2 <- rpart(
+   formula = Life ~ .,
+   data    = train,
+   method  = "anova", 
+   control = list(cp = 0, xval = 10)
+ )
+ 
+plotcp(m2)
+abline(v = 6, lty = "dashed") #vertical line at tree size = 12.
+
+```
+
+
+Testing out different models
+```{r}
+hyper_grid <- expand.grid(
+   minsplit = seq(5, 20, 1),
+   maxdepth = seq(8, 15, 1)
+ )
+ head(hyper_grid)
+ 
+ 
+ models <- list()
+ for (i in 1:nrow(hyper_grid)) {
+   
+   # get minsplit, maxdepth values at row i
+   minsplit <- hyper_grid$minsplit[i]
+   maxdepth <- hyper_grid$maxdepth[i]
+   
+   # train a model and store in the list
+   models[[i]] <- rpart(
+     formula = Life ~ .,
+     data    = train,
+    method  = "anova",
+    control = list(minsplit = minsplit, maxdepth = maxdepth)
+   )
+}
+
+
+# function to get optimal cp
+get_cp <- function(x) {
+   min    <- which.min(x$cptable[, "xerror"])
+   cp <- x$cptable[min, "CP"] 
+ }
+
+
+# function to get minimum error
+get_min_error <- function(x) {
+  min    <- which.min(x$cptable[, "xerror"])
+  xerror <- x$cptable[min, "xerror"] 
+}
+
+hyper_grid %>%
+   mutate(cp    = purrr::map_dbl(models, get_cp),
+          error = purrr::map_dbl(models, get_min_error)) %>%
+   arrange(error) %>%
+   top_n(-5, wt = error)
+
+
+
+```
+
+```{r}
+optimal_tree <- rpart(
+   formula = Life ~ .,
+   data    = train,
+   method  = "anova",
+   control = list(minsplit = 5, maxdepth = 15, cp = 0.01)
+ )
+ pred <- predict(optimal_tree, newdata = test)
+ pred
+ 
+ RMSE(pred = pred, obs = test$Life)
+
+```
+
+
 ### classification 
 
 #### build a classification tree
