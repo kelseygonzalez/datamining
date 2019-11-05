@@ -14,7 +14,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 ```
 
 First we'll download the necessary packages, libraries and data.
-```{r echo=FALSE}
+```{r}
 library(tidyverse)
 library(rpart)
 library(rpart.plot)
@@ -44,7 +44,9 @@ data$Country = as.factor(data$Country)
 # data$Life <- cut(data$`Life expectancy`, 
 #                               breaks = 3, 
 #                               labels=c('low LE', 'middle LE', 'high LE'))
+
 data$Life <- data$`Life expectancy`
+
 data$infantmort <- cut(data$`infant deaths`, 
                               breaks = 3, 
                               labels=c('low_infant', 'middle_infant', 'high_infant'))
@@ -63,6 +65,11 @@ data$gdp <- cut(data$GDP,
 data$alcohol <- cut(data$Alcohol, 
                               breaks = 3, 
                               labels=c('low_alc','med_alc', 'high_alc'))  
+# data$Year <- cut(data$Year, breaks=c(-Inf, 2007, Inf), labels = c('2000-2007', '2007-2015'))  
+
+
+
+
 
 drops <- c("Alcohol",
            "percentage expenditure",
@@ -81,14 +88,19 @@ drops <- c("Alcohol",
            "under-five deaths",
            "Adult Mortality",
            "Income composition of resources",
-           "Schooling")
+           "Schooling",
+           "Country")
 data <- data[ , !(names(data) %in% drops)]
+data <- data %>% drop_na()
+
 
 # write.csv(data, file = "LifeExpectancyData_all_cat.Rdata")
 ```
 ____
-#[REQUIRED]
-Exercises on your data set: 
+#[REQUIRED] 
+
+Exercises on your data set:  
+
 ## 1.	Build a decision tree (regression or classification) and use one ensemble method on your own dataset.
 
 ### traing and test data
@@ -98,9 +110,6 @@ train_rows = sample(1:nrow(data), 0.75*nrow(data))
 train = data[train_rows, ]
 test = data[-train_rows, ]
 ```
-
-
-
 
 #### build a classification tree
 
@@ -112,6 +121,7 @@ m1 <- rpart(
   method  = "anova"
   )
 ```
+
 #### plot the classification trees
 ```{r}
 
@@ -139,17 +149,9 @@ plotcp(m2)
 abline(v = 6, lty = "dashed") #vertical line at tree size = 12.
 
 ```
-____
-
-### Numerical Prediction 
-
-Create training (70%) and test (30%) sets for the data
-
 
 #### tune the model
 try out different combinations of minsplit and maxdepth values and compare the models
-
-
 
 Testing out different models
 ```{r}
@@ -206,11 +208,15 @@ optimal_tree <- rpart(
    formula = Life ~ .,
    data    = train,
    method  = "anova",
-   control = list(minsplit = 5, maxdepth = 15, cp = 0.01)
+   control = list(minsplit = 10, maxdepth = 15, cp = 0.01)
  )
+prp(optimal_tree, type=1, extra=101, roundint = FALSE)
+
+
  pred <- predict(optimal_tree, newdata = test)
- pred
- 
+ # pred
+
+
  RMSE(pred = pred, obs = test$Life)
 
 ```
@@ -218,6 +224,53 @@ ____
 
 
 ##2. List at least two interesting rules from the decision tree your generated. 
-
+```{r}
+rpart.rules(optimal_tree, cover = TRUE)
+```
 ____
 ## 3. Does the ensemble method improve the performance on your dataset?
+bagging: learn trees on boostrapped samples using all variables
+```{r}
+# 750 trees built to bootstrapped samples using all variables
+rfm <- ipred::bagging(Life ~ ., train, nbag=750)
+rfpred <- predict(rfm, test)
+#error reduced from 39145 to 34536
+RMSE(rfpred, test$Life)
+
+```
+boosting:iteratively add new models to the ensemble, each model tries to overcome the errors made by the previous model
+```{r}
+ct <- boosting(Life ~ ., train, mfinal=50)
+ps2 <- predict(ct, test) 
+ps2$confusion
+ps2$error
+```
+
+
+
+```{r}
+
+#build model based on a forest of 750 trees
+rfm <- randomForest(Life ~ ., train, ntree=750)
+
+#predict test data 
+rfpred <- predict(rfm, test)
+
+#error reduced from 39145.39 to 24226.48.
+RMSE(rfpred, test$Life)
+
+
+
+```
+
+Another algorithm: Gradient boosting: classification and regression. like AdaBoost, but use gradient descent to address the current errors. Can overfit, so using cross-validation is very important (cv.folds)
+```{r}
+rfm <- gbm(Life ~ ., data=train, n.trees=150, cv.folds=3)
+# # Distribution not specified, assuming gaussian ...
+# rfpred <- predict(rfm, test, n.trees=750)
+# 
+# RMSE(rfpred, test$Life)
+```
+
+
+
