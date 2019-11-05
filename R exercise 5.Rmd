@@ -37,7 +37,7 @@ Load data
 rm(list=ls())
 load("LifeExpectancyData_3.Rdata")
 data$Status = as.factor(data$Status)
-data$Year = as.factor(data$Year)
+#data$Year = as.factor(data$Year)
 data$Country = as.factor(data$Country)
 
 
@@ -63,6 +63,12 @@ data$gdp <- cut(data$GDP,
 data$alcohol <- cut(data$Alcohol, 
                               breaks = 3, 
                               labels=c('low_alc','med_alc', 'high_alc'))  
+summary(data$Year)
+
+data$Year <- cut(data$Year, 
+                              breaks = c(-Inf,2007, Inf),
+                              labels=c("2000", "2007"))
+summary(data$Year)
 
 drops <- c("Alcohol",
            "percentage expenditure",
@@ -83,12 +89,13 @@ drops <- c("Alcohol",
            "Income composition of resources",
            "Schooling")
 data <- data[ , !(names(data) %in% drops)]
+data <- data %>% drop_na
 
 # write.csv(data, file = "LifeExpectancyData_all_cat.Rdata")
 ```
 ____
 #[REQUIRED]
-Exercises on your data set: 
+Exercises on your data set:   
 ## 1.	Build a decision tree (regression or classification) and use one ensemble method on your own dataset.
 
 ### traing and test data
@@ -97,16 +104,15 @@ First, divide the data into 75% data for training, and 25% for test
 train_rows = sample(1:nrow(data), 0.75*nrow(data))
 train = data[train_rows, ]
 test = data[-train_rows, ]
+
 ```
-
-
 
 
 #### build a classification tree
 
 ```{r}
 m1 <- rpart(
-  formula = Life ~ .,
+  formula = Life ~ ., 
   data    = train,
   cp   = 0.01,
   method  = "anova"
