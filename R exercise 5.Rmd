@@ -91,6 +91,7 @@ ____
 Exercises on your data set: 
 ## 1.	Build a decision tree (regression or classification) and use one ensemble method on your own dataset.
 
+### traing and test data
 First, divide the data into 75% data for training, and 25% for test
 ```{r}
 train_rows = sample(1:nrow(data), 0.75*nrow(data))
@@ -98,14 +99,22 @@ train = data[train_rows, ]
 test = data[-train_rows, ]
 ```
 
+
+
+
+#### build a classification tree
+
 ```{r}
-set.seed(1234)
 m1 <- rpart(
   formula = Life ~ .,
   data    = train,
   cp   = 0.01,
   method  = "anova"
   )
+```
+#### plot the classification trees
+```{r}
+
 prp(m1, type=1, extra=101, roundint = FALSE)
 
 #In the plot, y-axis is cross validation error, lower x-axis is cost complexity (α or cp) value, upper x-axis is the number of terminal nodes (tree size) 
@@ -116,6 +125,8 @@ plotcp(m1)
 
 
 ```
+
+
 ```{r}
 m2 <- rpart(
    formula = Life ~ .,
@@ -128,6 +139,16 @@ plotcp(m2)
 abline(v = 6, lty = "dashed") #vertical line at tree size = 12.
 
 ```
+____
+
+### Numerical Prediction 
+
+Create training (70%) and test (30%) sets for the data
+
+
+#### tune the model
+try out different combinations of minsplit and maxdepth values and compare the models
+
 
 
 Testing out different models
@@ -179,6 +200,7 @@ hyper_grid %>%
 
 ```
 
+
 ```{r}
 optimal_tree <- rpart(
    formula = Life ~ .,
@@ -192,48 +214,6 @@ optimal_tree <- rpart(
  RMSE(pred = pred, obs = test$Life)
 
 ```
-
-
-### classification 
-
-#### build a classification tree
-
-#### plot the classification trees
-____
-
-### traing and test data
-
-#### build a classification tree
-
-#### plot the classification trees
-____
-
-### Numerican Prediction 
-
-Create training (70%) and test (30%) sets for the data
-
-
-#### tune the model
-try out different combinations of minsplit and maxdepth values and compare the models
-
-### Ensemble methods for classification and regression
-
-### AdaBoost
-offers bagging and boosting, both are for classification (not regression)
-
-
-### boosting
-iteratively add new models to the ensemble, each model tries to overcome the errors made by the previous model
-
-
-### bagging
-learn trees on boostrapped samples using all variables
-
-### Another algorithm
-RandomForest, classification and regression
-
-### Another algorithm
-Gradient boosting classification and regression. like AdaBoost, but use gradient descent to address the current errors. Can overfit, so using cross-validation is very important (cv.folds)
 ____
 
 
