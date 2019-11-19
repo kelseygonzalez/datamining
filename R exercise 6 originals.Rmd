@@ -239,7 +239,9 @@ college_clean_n <- College %>%
 # turn 'yes' 'no' to 1 and 0
 college_clean_n$Private<-as.integer(college_clean_n$Private)-1L
 # z-score transformation to scale the variables. Scaling is needed because we will use euclidean distant
-college_clean_n %>% mutate_at(scale, .vars=vars(-name))
+college_clean_n <- college_clean_n %>% mutate_at(scale, .vars=vars(-name))
+college_clean_n %>% head()
+
 ```
 
 get distance matrix, excluding first column: name
@@ -292,7 +294,7 @@ TSNE is a powerful but sometimes puzzling technique More see https://distill.pub
 append cluster assignment to data
 ```{r}
 college_clean_n <- data.frame(college_clean_n, kmeans_fit$cluster)
-college_clean_n
+college_clean_n %>% head()
 result2 <- college_clean_n %>% 
   dplyr::select(name,kmeans_fit.cluster)
 
