@@ -1,0 +1,197 @@
+---
+title: "hmwk5_classification_performance-estimation"
+author: "Laura.w"
+date: "11/3/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Clean up the data
+```{r}
+#suppressMessages(library(dplyr))
+#suppressMessages(library(tidyverse))
+#data$Life <- data$`Life expectancy`
+#data <- data %>% drop_na()
+```
+
+Install Packages and load libraries; then load the data
+```{r}
+
+
+#summary(data)
+```
+
+```{r}
+#rm(list=ls())
+#load("LifeExpectancyData_3.Rdata")
+#data$Status = as.factor(data$Status)
+#data$Year = as.factor(data$Year)
+#data$Country = as.factor(data$Country)
+
+
+
+#data("data")
+
+# data$Life <- cut(data$`Life expectancy`, 
+#                               breaks = 3, 
+#                               labels=c('low LE', 'middle LE', 'high LE'))
+
+
+#data$infantmort <- cut(data$`infant deaths`, 
+  #                            breaks = 3, 
+ #                             labels=c('low_infant', 'middle_infant', 'high_infant'))
+#data$expenditure <- cut(data$`Total expenditure`, 
+#                              breaks = 3, 
+                              #labels=c('low_expenditure','med_expenditure', 'high_expenditure'))
+#data$pop <- cut(data$Population, 
+ #                             breaks = 3, 
+  #                            labels=c('low_pop','med_pop', 'high_pop'))
+#data$bmi <- cut(data$BMI, 
+ #                             breaks = 3, 
+  #                            labels=c('low_BMI','med_BMI', 'high_BMI'))  
+#data$gdp <- cut(data$GDP, 
+ #                             breaks = 3, 
+  #                            labels=c('low_GDP','med_GDP', 'high_GDP'))  
+#data$alcohol <- cut(data$Alcohol, 
+ #                             breaks = 3, 
+  #                            labels=c('low_alc','med_alc', 'high_alc'))  
+
+#data$Year <- cut(data$Year, 
+ #                             breaks = 2,
+  #                            labels=c("2000-2007", "2007-2015"))
+#summary(data$Year)
+ 
+
+#drops <- c("Alcohol",
+ #          "percentage expenditure",
+  #         "BMI",
+   #        "GDP",
+    #       "Diphtheria",
+     #      "Life expectancy",
+      #     "Measles",
+#           "infant deaths",
+ #          "Total expenditure", 
+  #         "thinness  1-19 years",  
+   #        "thinness 5-9 years", 
+    #       "Population", 
+     #      "HIV/AIDS", 
+#           "Polio",
+   #        "under-five deaths",
+ #         "Adult Mortality",
+ #          "Income composition of resources",
+  #         "Schooling",
+   #        "Country")
+#data <- data[ , !(names(data) %in% drops)]
+
+```
+
+
+2) Performance Estimation - the result of this signal run is not 1, but .966
+```{r}
+suppressPackageStartupMessages(install.packages("performanceEstimation"))
+suppressPackageStartupMessages(install.packages("e1071"))
+suppressMessages(library(performanceEstimation))
+suppressMessages(library(e1071))
+suppressMessages(library(nnet))
+
+data('data')
+data$Life <- cut(data$`Life expectancy`, 
+                               breaks = 3, 
+                               labels=c('low LE', 'middle LE', 'high LE'))
+drops <- c("Life expectancy")
+data <- data[, !(names(data) %in% drops)]
+
+
+res1 <- performanceEstimation(PredTask(Life ~ .,data),
+                              Workflow(learner='svm',
+                              learner.pars=list(cost=1, type="C-classification")),
+                              EstimationTask(metrics = "acc",
+                                             method=Holdout(nReps=1,hldSz = .2)))
+```
+
+```{r}
+summary(res1)
+
+```
+
+```{r}
+res1 <- performanceEstimation(PredTask(Life ~ .,data),
+                              Workflow(learner="svm"),
+                              EstimationTask(metrics = "acc",
+                              method=Holdout(nReps=10, hldSz = .4)))
+```
+
+```{r}
+summary(res1)
+```
+
+```{r}
+res <- performanceEstimation(
+  c(PredTask(GDP ~.,data), PredTask(Population ~., data)),
+  c(workflowVariants(learner="svm",
+                     learner.pars=list(cost=c(1,10), gamma=c(0.01,0.5))),
+    workflowVariants(learner="nnet",
+                     learner.pars=list(size=c(1, 2), decay=c(.01, .001)))),
+  EstimationTask(metrics = "mse", method =CV(nReps=1, nFolds=10))
+)
+```
+
+```{r}
+summary(res)
+```
+
+```{r}
+topPerformers(res)
+```
+
+```{r}
+getWorkflow("svm.v1", res)
+```
+
+```{r}
+(pres <- pairedComparisons(res, "nnet.v2"))
+
+```
+
+```{r}
+data$Year = as.factor(data$Year)
+
+myWF <- function(form,train, test, wL=.5, ...) {
+  require(rpart,quietly = TRUE)
+  ml <- lm(form,train)
+  mr <- rpart(form,train)
+  pl <- predict(ml, test)
+  pr <- predict(mr, test)
+  ps <- wL*pl+(1-wL)*pr
+  list(trues=responseValues(form, test),preds=ps)
+}
+
+resmywf <- performanceEstimation(PredTask(GDP ~.,data), 
+  workflowVariants(wf="myWF", wL=seq(0,1,by=.1)),
+  EstimationTask(metrics = "mae", method = Bootstrap(nReps = 50))
+)
+summary(resmywf)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
