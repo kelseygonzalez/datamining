@@ -1,5 +1,5 @@
 ---
-title: 'R exercise 6: Clustering, Density'
+title: 'R exercise 6: Density Clustering'
 author: "Kelsey Gonzalez and Laura Werthmann"
 date: "Due Nov 27, 2019"
 output: html_document

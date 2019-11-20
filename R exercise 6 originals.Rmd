@@ -1,5 +1,5 @@
 ---
-title: 'R exercise 6: Clustering'
+title: 'R exercise 6: Paritioning and Hierarchal Clustering'
 author: "Kelsey Gonzalez and Laura Werthmann"
 date: "Due Nov 27, 2019"
 output: html_document
