@@ -169,7 +169,7 @@ myWF <- function(form,train, test, wL=.5, ...) {
   list(trues=responseValues(form, test),preds=ps)
 }
 
-resmywf <- performanceEstimation(PredTask(GDP ~.,data), 
+resmywf <- performanceEstimation(PredTask(Life ~.,data), 
   workflowVariants(wf="myWF", wL=seq(0,1,by=.1)),
   EstimationTask(metrics = "mae", method = Bootstrap(nReps = 50))
 )

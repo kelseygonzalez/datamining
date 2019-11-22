@@ -1,0 +1,570 @@
+---
+title: 'R exercise 6: Clustering'
+author: "Kelsey Gonzalez and Laura Werthmann"
+date: "October 3, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
+```
+Due Nov 27
+
+Load packages
+```{r}
+suppressPackageStartupMessages(library(tidyverse)) # for data cleaning and visualization
+#library(ISLR) # for college dataset
+suppressPackageStartupMessages(library(cluster)) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
+suppressPackageStartupMessages(library(Rtsne)) # for t-SNE plot
+load(data)
+```
+
+Clustering requires 
+1. Calculating distance among the observations
+2. Choosing a clustering algorithm
+3. Selecting the number of clusters
+
+distance measures for continuous variables: dist()
+generate a 5x10 matrix with random data
+
+```{r}
+set.seed(2345) #to get repeatable results
+randDat <- matrix(rnorm(50), nrow=5)
+dist(randDat)
+```
+
+calculate distances
+```{r}
+#Manhattan
+dist(randDat, method="manhattan")
+
+dist(randDat, method="minkowski", p=4)
+
+dist(randDat, method="minkowski", p=2)
+
+dist(randDat, method="minkowski", p=1)
+```
+
+
+load data 
+A data frame with 777 observations on the following 18 variables.
+Private A factor with levels No and Yes indicating private or public university
+Apps Number of applications received
+Accept Number of applications accepted
+Enroll Number of new students enrolled
+Top10perc Pct. new students from top 10% of H.S. class
+Top25perc Pct. new students from top 25% of H.S. class
+F.Undergrad Number of fulltime undergraduates
+P.Undergrad Number of parttime undergraduates
+Outstate Out-of-state tuition
+Room.Board Room and board costs
+Books Estimated book costs
+Personal Estimated personal spending
+PhD Pct. of faculty with Ph.D.’s
+Terminal Pct. of faculty with terminal degree
+S.F.Ratio Student/faculty ratio
+perc.alumni Pct. alumni who donate
+Expend Instructional expenditure per student
+Grad.Rate Graduation rate
+```{r}
+set.seed(1680)
+data(College, package="ISLR") 
+glimpse(College)
+```
+
+
+## data transformation
+_Acceptance_ rate is created by diving the number of acceptances by the number of applications
+_isElite_ is created by labeling colleges with more than 50% of their new students who were in the top 10% of their high school class as elite
+```{r}
+college_clean <- College %>%
+   mutate(name = row.names(.),
+          accept_rate = Accept/Apps,
+          isElite = cut(Top10perc,
+                        breaks = c(0, 50, 100),
+                        labels = c("Not Elite", "Elite"),
+                        include.lowest = TRUE)) %>%
+   mutate(isElite = factor(isElite)) %>%
+   select(name, accept_rate, Outstate, Enroll,
+          Grad.Rate, Private, isElite)
+glimpse(college_clean)
+
+```
+
+calculating distance the Gower distance for mixed variable types in package cluster
+_Gower distance_: For each variable type, a particular distance metric that works well for that type is used and scaled to fall between 0 and 1. Then, a linear combination using user-specified weights (most simply an average) is calculated to create the final distance matrix.   
+The metrics used for each data type are described below:  
+
+_quantitative (interval)_: range-normalized Manhattan distance  
+_ordinal_: variable is first ranked, then Manhattan distance is used with a special adjustment for ties  
+_nominal_: variables of k categories are first converted into k binary columns and then the Dice coefficient is used  
+
+_pros_: Intuitive to understand and straightforward to calculate  
+_cons_: Sensitive to non-normality and outliers present in continuous variables, so transformations as a pre-processing step might be necessary. Also requires an NxN distance matrix to be calculated, which is computationally intensive to keep in-memory for large samples
+Note that due to positive skew in the Enroll variable, a log transformation is conducted internally via the type argument. Instructions to perform additional transformations, like for factors that could be considered as asymmetric binary (such as rare events), can be seen in ?daisy.
+
+Remove college name before clustering
+Use daisy() to compute the distance matrix using ‘gower’
+
+```{r}
+gower_dist <- daisy(college_clean[, -1],
+metric = "gower",
+type = list(logratio = 3))
+```
+
+Check attributes to ensure the correct methods are being used (I = interval, N = nominal)
+Note that despite logratio being called, the type remains coded as "I"
+```{r}
+summary(gower_dist)
+gower_mat <- as.matrix(gower_dist)
+```
+
+
+Output most similar pair, excluding dissimilar scores of 0 (one compared to itself)
+
+```{r}
+college_clean[
+which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
+arr.ind = TRUE)[1, ], ]
+
+college_clean[which(gower_mat==max(gower_mat), arr.ind = TRUE)[1, ], ]
+```
+
+check if the pair has the highest dissimilarity score
+```{r}
+max(gower_mat)
+gower_mat[673, 460]
+```
+
+## Use PAM (partitioning around medoids) to perform the clustering
+Calculate Silhouette width for 2 to 10 clusters using PAM
+
+```{r}
+sil <- c(NA)
+for(i in 2:10){
+  pam_fit <- pam(gower_mat, diss=TRUE, k=i)
+  sil[i] <-pam_fit$silinfo$avg.width
+}
+```
+
+
+Plot silhouette width (higher is better, clusters = 3 has the highest sil value)
+```{r}
+plot(1:10, sil,
+xlab = "Number of clusters",
+ylab = "Silhouette Width")
+lines(1:10, sil)
+```
+
+
+Cluster Interpretation:via Descriptive Statistics
+```{r}
+pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
+# add cluster labels to the data. We will use result1 later
+college_clean <- data.frame(college_clean, pam_fit$cluster)
+# show clustering results by college
+result1 <- college_clean %>% dplyr::select(name,pam_fit.cluster)
+# View(result1)
+```
+
+group_by cluster and then compute the summary data (means, median, etc) for each cluster
+```{r}
+pam_results <- college_clean %>%
+  dplyr::select(-name) %>%
+  mutate(cluster = pam_fit$clustering) %>% #add the cluster column
+  group_by(cluster) %>% #group universities by its cluster 
+  do(the_summary = summary(.)) #do: summarize by group/cluster,add the_summary column
+
+pam_results$the_summary
+```
+The results suggest
+Cluster 1, is mainly Private/Not Elite with medium levels of out of state tuition and smaller levels of enrollment. 
+Cluster 2, is mainly Private/Elite with lower levels of acceptance rates, high levels of out of state tuition, and high graduation rat
+Cluster 3, is mainly Public/Not Elite with the lowest levels of tuition, largest levels of enrollment, and lowest graduation rate.
+
+Output medoids: representative university in each cluster:
+```{r}
+college_clean[pam_fit$medoids, ]
+```
+
+## Cluster Interpretation: via visualization
+One way to visualize many variables in a lower dimensional space is with t-distributed stochastic neighborhood embedding, or t-SNE. 
+This method is a dimension reduction technique that tries to preserve local structure so as to make clusters visible in a 2D or 3D visualization.
+it is a powerful but also sometimes puzzling technique, more see https://distill.pub/2016/misread-tsne/ 
+```{r}
+tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
+
+tsne_data <- tsne_obj$Y %>%
+  data.frame() %>% 
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(pam_fit$clustering),
+         name = college_clean$name)
+
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster))
+```
+
+
+ What is in the little cluster between glue and green?
+
+```{r}
+tsne_data %>%
+  filter(X > -15 & X < -10, Y > -20 & Y < -15) %>%
+  left_join(college_clean, by = "name") %>% 
+  collect %>% 
+  .[["name"]]
+```
+
+## cluster the same data set using kmeans
+different implementations of kmeans are provided throught the algorithm argument to 
+kmeans() method: "Hartigan-Wong", "Lloyd", "Forgy", "MacQueen". The default H-W implementation works well in most cases.  
+To know more about the differences see https://core.ac.uk/download/pdf/27210461.pdf 
+kmeans() take numeric data, 
+
+```{r}
+college_clean_n <- College %>%
+  mutate(name = row.names(.), 
+         accept_rate = Accept/Apps) %>% 
+  select(name, 
+         accept_rate, 
+         Outstate, 
+         Enroll, 
+         Grad.Rate,
+         Private, 
+         Top10perc)
+
+# turn 'yes' 'no' to 1 and 0
+college_clean_n$Private<-as.integer(college_clean_n$Private)-1L
+# z-score transformation to scale the variables. Scaling is needed because we will use euclidean distant
+college_clean_n %>% mutate_at(scale, .vars=vars(-name))
+```
+
+get distance matrix, excluding first column: name
+
+note: nstart is the parameter that allows the user to try multiple sets of initial centroids. You should use a nstart > 1, for example, nstart=25, this will run kmeans nstart number of times, each time with a different set of initial centroids. kmeans will then select the one with the lowest within cluster variation.
+```{r}
+dist_mat <- dist(college_clean_n[, -1], method="euclidean")
+
+avgS <- c() #initiate an empty vector
+
+for(k in 2:10){
+  kmeans_cl <- kmeans(college_clean_n[,-1], centers=k, iter.max=500, nstart=1)
+  s <- silhouette(kmeans_cl$cluster, dist_mat)
+  avgS <- c(avgS, mean(s[,3])) # take the mean of sil_width of all observations, and save it in the avgS vector
+}
+
+data.frame(nClus=2:10, Silh=avgS)
+plot(2:10, avgS,
+  xlab = "Number of clusters",
+  ylab = "Silhouette Width")
+  lines(2:10, avgS)
+```
+
+
+2 clusters seem to be the best
+```{r}
+kmeans_fit <- kmeans(college_clean_n[,-1], 2)
+```
+get cluster means
+```{r}
+
+aggregate(college_clean_n[,-1],by=list(kmeans_fit$cluster),FUN=mean)
+``` 
+
+append cluster assignment to data
+```{r}
+college_clean_n <- data.frame(college_clean_n, kmeans_fit$cluster)
+# Cluster Interpretation:via visualization
+tsne_obj <- Rtsne(dist_mat, is_distance = TRUE)
+tsne_data <- tsne_obj$Y %>%
+data.frame() %>%
+setNames(c("X", "Y")) %>%
+mutate(cluster = factor(kmeans_fit$cluster),
+name = college_clean_n$name)
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+geom_point(aes(color = cluster))
+```
+
+TSNE is a powerful but sometimes puzzling technique More see https://distill.pub/2016/misread-tsne/
+append cluster assignment to data
+```{r}
+college_clean_n <- data.frame(college_clean_n, kmeans_fit$cluster)
+college_clean_n
+result2 <- college_clean_n %>% 
+  dplyr::select(name,kmeans_fit.cluster)
+
+View(result2)
+
+result2.copy <- result2
+
+result2$kmeans_fit.cluster[result2$kmeans_fit.cluster==2] <- 0
+result2$kmeans_fit.cluster[result2$kmeans_fit.cluster==1] <- 2
+result2$kmeans_fit.cluster[result2$kmeans_fit.cluster==0] <- 1
+```
+now create a confusion table to see the differences in the two clusterings
+285+51+190 = 526 universities were in the same clusters
+16+16+87+128+2+2 = 251 universities were in different clusters
+```{r}
+table(result1$pam_fit.cluster, result2$kmeans_fit.cluster)
+```
+
+
+##build a hierarchical cluster using College data
+method argument takes the agglomeration method to be used. This should be (an unambiguous abbreviation of) one of "ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+```{r}
+h <- hclust(gower_dist, method="average")
+# plot the dendrogram #hang decides where to start labels on axis. -0.1 is negative, so the x-axis labels will hang down from 0
+plot(h, hang=-0.1)
+```
+
+If we want three clusters
+```{r}
+clus3 <- cutree(h, 3)
+```
+clus3 is a vector with the number of the cluster to which each observation was assigned. Observations keep the original order as in the dissimilar matrix.
+```{r}
+# clus3
+clus3[492]
+clus3[38]
+clus3[234]
+```
+492 is the index medoid for the 1st cluster, 
+38 is the index of the medoid for the 2nd/3rd clusters using PAM
+
+compare with pam 3-cluter results (we verified that the cluster labels 1, 2, 3 match PAM's mediods result)
+```{r}
+table(result1$pam_fit.cluster, clus3)
+```
+
+
+
+##use DIANA in the cluster package for divisive hierarchical clustering
+because we provided a dissimilarity matrix, we don't need to supply other arguments to this function.
+dissimilarity matrix incoporated the distance measures and data normalization
+```{r}
+d <- diana(gower_dist)
+d3 <- cutree(d, 3)
+table(result1$pam_fit.cluster, d3) #(we verified that the cluster labels 1, 2, 3 match PAM mediods result)
+```
+492 is the index medoid for the 1st cluster, 38 is the index of the medoid for the 2nd/3rd clusters using PAM
+we see the results are very close.
+
+Because we are using the same dissimilarity matrix for PAM and hierarchical clusterings, it is not too suprising that their results are very close, but still a way to validate PAM results.
+
+Verifing kmean results using this method is doable but a bit more difficult, because there is no medoids for an easy mapping of cluster numbers between two methods
+
+
+
+[REQUIRED]
+
+1.	Students: run Kmean or PAM on your dataset (run it multiple times without setting set.seed()). Report differences in performance between runs (Silhouette width or overlaps of observations in different clustering). Can you make sense of the clusters produced?
+
+2.	Run a hierarchical method on your dataset, try a couple of different cuts. Are these results more meaningful than those from the participation method?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+library(dbscan)
+library(dplyr) # for data cleaning
+library(ISLR) # for college dataset
+# The package dbscan provides high performance code for DBSCAN and OPTICS
+```
+
+use simulated data to show the use of dbscan
+```{r}
+set.seed(2)
+n <- 400
+
+# generate four slightly overlapping Gaussians in 2-D space with 100 points each.
+
+x <- cbind(
+   #points (x,y): random normally distributed data adding uniform distribution noices (runif)
+   #runif(4, 0, 1) generate 4 uniform distributed data values in [0, 1]
+   x = runif(4, 0, 1) + rnorm(n, sd = 0.1),
+   y = runif(4, 0, 1) + rnorm(n, sd = 0.1)
+   )
+```
+
+cluster labels
+```{r}
+true_clusters <- rep(1:4, time = 100)
+# take a look at the data, 4 colors and symbols to indicate true clusters for the points                     
+plot(x, col = true_clusters, pch = true_clusters) #col: color, pch:symbols
+```
+
+next, we need to decide on minPts and eps. 
+The rule of thumb fo minPts = # of dimensions of the dataset + 1, this is 3 in our case
+eps can be determined by plotting the points' kNN distances (ie. the distance to the kth nearest neighbor)
+in increasing order and look for a knee in the plot. 
+distance of each data point to its 3 nearest neighbor is plotted (3x400 =1200 distances)
+
+```{r}
+kNNdistplot(x, k=3)
+# distance 0.05 is the "knee", adding a reference line to show this
+abline(h=0.05, col ="red", lty=2)
+```
+
+now perform DBSCAN
+```{r}
+res <- dbscan(x, eps=0.05, minPts=3)
+# points with cluster id = 0 are noise. 
+res
+# dbscan alsp provide a plot that adds convect cluster hulls to the scatter plot. 
+plot(x, col=res$cluster+1L, pch=res$cluster+1L)
+```
+
+```{r}
+hullplot(x, res)
+```
+
+to see the cluster assignment of the original data points
+```{r}
+predict(res, x[1:25,], data=x) #the first 25 data points
+predict(res, x, data=x) 
+```
+
+Clustering with OPTICS
+To benefit from the flexibility of OPTICS algorithm, we select larger eps and minPts to run OPTICS
+minPts = 10 means the core-distance is defined as the distance to the 9th nearest neighbor
+```{r}
+res_op <- optics(x, eps=10, minPts = 10)
+```
+Some additional parameters you will see in the result:
+eps_cl: another threshold on eps may be used for identify final clusters, eps_cl<=eps
+xi: if use optics or hierarchical clustering, xi is the steepness threshold to identify clusters hierarchically using the reachability plot.
+```{r}
+res_op
+```
+to get the computed order of the points
+The order says that data point 1 in the data set is the first in the order, data point 363 is the second and so forth
+```{r}
+head(res_op$order, n= 50)
+```
+This density-based order produced by OPTICS can be directly used to plot a reachability plot
+4 Valleys represent potential clusters separated by peaks. Very high peaks may indicate noise points.
+```{r}
+plot(res_op)
+abline(h=0.065, col ="red", lty=2) #add a reference cutting line (lty=2 draws a dashed line) for extracting the clusters later
+```
+
+
+We can also visualize the order on the original datasets by plotting a ploygon on top of the original data points using the order
+if you run a smaller example, combining the order information with the graph,  you will be able see clearly the order of the visit of the points in the dataset.
+```{r}
+plot(x, col="red")
+polygon(x[res_op$order,])
+```
+
+Now we can extract a DBSCAN-type clustering based on the reachability plot
+Because this method extracts clusters like DBSCAN,it cannot identify partitions that exhibit very significant differences in density
+As shown above, eps_cl=0.065 will result in 4 clusters
+```{r}
+res_op_c <- extractDBSCAN(res_op, eps_cl=0.065)
+plot(res_op_c)
+
+hullplot(x, res_op_c)
+
+res_op_c #we can see 92 points were not included in the clusters
+```
+this can be a reliable way to identify tight clusters in a dataset and tight clusters can be used a summary of the daaset.
+
+
+We can also extract a hierarchical cluster structure using extract Xi
+xi is the steepness threshold, describes the relative magnitude of the change of cluster density (i.e., reachability) 
+Significant changes in relative reachability allow for clusters to manifest themselves hierarchically as ‘dents’ in the ordering structure. The hierarchical representation ExtractXi can, as opposed to the ExtractDBSCAN method, produce clusters of varying densities.
+Clusters are represented as contiguous ranges in the reachability plot and are available in the field clusters_xi
+
+```{r}
+(res_op_h <- extractXi(res_op, xi=0.05))
+res_op_h$clusters_xi
+```
+
+We can visualize the clusters in the reachability plot
+clusters represented using colors and vertical bars below the plot.
+```{r}
+plot(res_op_h)
+hullplot(x, res_op_h)
+```
+
+To represent the hierarchical clustering as a dendrogram
+```{r}
+(dend <- as.dendrogram(res_op_h))
+plot(dend, ylab="Reachability distance", leaflab="none")
+```
+
+Run OPTICS on the College dataset, using gower_dist matrix
+```{r}
+
+set.seed(1680) # for reproducibility
+data(College, package="ISLR")
+college_clean <- College %>%
+   mutate(name = row.names(.),
+          accept_rate = Accept/Apps,
+          isElite = cut(Top10perc,
+                        breaks = c(0, 50, 100),
+                        labels = c("Not Elite", "Elite"),
+                        include.lowest = TRUE)) %>%
+   mutate(isElite = factor(isElite)) %>%
+   select(name, accept_rate, Outstate, Enroll,
+          Grad.Rate, Private, isElite)
+
+gower_dist <- daisy(college_clean[, -1],
+                     metric = "gower",
+                     type = list(logratio = 3))
+
+dim(college_clean)
+# 7 dimensions, so set k = 8
+kNNdistplot(gower_dist, k=8)
+abline(h=0.05, col='red', lty=2)
+
+(res_col <- optics(gower_dist, eps=10, minPts = 10))
+plot(res_col)
+```
+
+
+```{r}
+# 3 clusters, 78 noise points
+(res_col_d <- extractDBSCAN(res_col, eps_cl=0.05))
+# 4 clusters, 2 noise points
+(res_col_h <- extractXi(res_col, xi=0.05))
+res_col_h$clusters_xi #cluster 4 is tiny, what is in there?
+plot(res_col_h)
+
+dend_col <-as.dendrogram(res_col_h)
+plot(dend_col)
+```
+12 Universities in cluster 4, almost exactly match the smallest cluster produced by PAM (University of Michigan at Ann Arbor not in the current list)
+```{r}
+
+college_clean[res_col_h$order[765:776],]
+```
+
+```{r}
+# which cluster is UMich at Ann Arbor?
+college_clean[college_clean$name=="University of Michigan at Ann Arbor", ]
+match(638, res_col_h$order)
+```
+Michigan is 777 in the order, by checking res_col_h$clusters_xi, it is one of the two outliers
+by comparing the results from OPTICS with PAM and see they are similar, our confidence in the clusters identified increases.
+
+
+
+[REQUIRED]
+1.	Apply BDSCAN and OPTICS on your dataset, could you identified some good clusters?
+
+

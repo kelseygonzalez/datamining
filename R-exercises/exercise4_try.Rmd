@@ -1,0 +1,210 @@
+---
+title: "exercise_4_try2"
+author: "Laura.w"
+date: "10/23/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First we'll download the necessary packages, libraries and data.
+```{r}
+suppressPackageStartupMessages("arules")
+library(arules)
+```
+
+```{r}
+suppressPackageStartupMessages("dplyr")
+library(dplyr)
+```
+
+```{r}
+data(Boston, package = "MASS")
+```
+
+### Reviewing the data
+
+We can look at the different types of variable class within the Boston data
+```{r}
+lapply(Boston, class)
+```
+
+Most variables are shown as numeric, except for chas and rad, we'll review those and convert them to factors.
+```{r}
+unique(Boston$chas)
+```
+```{r}
+unique(Boston$rad)
+```
+
+###Processing
+
+We'll create a new dataset with the new variable class.
+```{r}
+b <- Boston
+```
+
+```{r}
+b$chas <- factor(Boston$chas, labels = c("river", "noriver"))
+b$rad <- factor(Boston$rad)
+```
+
+The variavle b$black will be cut for better interpretation.
+```{r}
+b$black <- cut(Boston$black, breaks = 4, labels = c(">31.5%", "18.5-31.5%", "8-18.5%", "<8%"))
+```
+
+Now we can discretize all the remaining variables in dataset b by putting them into 4 equal-width bins.
+
+**We then pull out chas, rad, and black to mutate the other numeric variables, or put them into the 4 equal-width bins. after the bins are created we'll put our chas, rad and black variables back into the dataset. 
+
+**Last, we'll turn the dataset b into a transactional dataset.
+```{r}
+discrt <-function(x) cut(x, breaks = 4, labels = c("low", "medlow", "medhigh", "High"))
+
+b <- select(b, -c("chas", "rad", "black")) %>%
+  mutate_all(funs(discrt)) %>%
+  bind_cols(select(b, c("chas", "rad", "black")))
+
+dim(b)
+
+summary(b)
+
+
+b <- as(b, "transactions")
+
+```
+
+Check the columns to make sure they're all in the bins:
+```{r}
+colnames(b)
+```
+
+Get a summary of the newly discretized and cute dataset.
+```{r}
+summary(b)
+```
+
+Now we'll inspect the first 9 transactions.
+```{r}
+inspect(b[1:9])
+```
+
+We can plot the frequency of the cut variables as seen below:
+```{r}
+itemFrequencyPlot(b, support=.3, cex.names=.8)
+```
+
+### Using association rules
+
+Now we're going to apply the aprior method to the b dataset with a .025% support and 75% confidence, which gives us a minimum support count of 12 and 10 subsets before reaching a maximum.
+```{r}
+ars <- apriori(b, parameter = list(support=0.025, confidence=.75))
+
+```
+
+We can get a summary of the data that includes the number of (x) left-hand-side and (y)right-hand-side rules that satisfy our support and confidence constraints.
+```{r}
+summary(ars)
+```
+As the example notes, we are interested in the association between pollution (NOX) and property value (MEDV) so we'll find the top 5 rules by confidence with "medv=High", and "medv=Low" attributes on the rhs:
+```{r}
+inspect(head(subset(ars, subset=rhs %in% "medv=High"), 5, by="confidence"))
+```
+
+Here we find the subsets of medv=low, lhs => rhs:
+```{r}
+inspect(head(subset(ars, subset=rhs %in% "medv=low"), 5, by="confidence"))
+```
+
+And now we'll compare the rhs in the lhs for high pollution (nox=High)
+```{r}
+ inspect(head(subset(ars, subset=rhs %in% "nox=High" | lhs %in% "nox=High")))
+```
+
+Instead of looking at high property value medV=High confidence, we'll look at support
+```{r}
+inspect(head(subset(ars, subset=rhs %in% "medv=High"), 5, by="support"))
+```
+
+Now we'll look at rules generated from maximal and closed itemsets:
+
+We'll start with maximal itemsets that are at our support constraint and somewhat above the confidence constraint. The Maximal count is 13.
+```{r}
+inspect(head(subset(ars, subset=is.maximal(ars), 5, by="confidence")))
+```
+
+To find our closed datasets we need to find find and pull out the most frequent itemsets:\, 52 items are recorded:
+```{r}
+freq.itemsets <- apriori(b, parameter = list(target="frequent itemsets", support=.025))
+
+```
+
+Now we can find and review the closed itemsets, and of the 10 subsets, the first has a total of 13 closed itemetems.
+```{r}
+inspect(head(subset(ars, subset=is.closed(freq.itemsets), 5, by="confidence")))
+closed = freq.itemsets[is.closed(freq.itemsets)]
+summary(closed)
+
+```
+
+We can compare the frequencies to the maximum subsets which start at 4 with a maximum count of 4 transactions.
+```{r}
+maximal = freq.itemsets[is.maximal(freq.itemsets)]
+summary(maximal)
+```
+
+Now we can look at rhorter rules:
+```{r}
+inspect(head(subset(ars, subset= size(lhs) <5 & size(lhs) >1), 5, by="support"))
+```
+
+And modify the previous review by raising the lift.
+```{r}
+inspect(head(subset(ars, subset=size(lhs)<5 & size(lhs) >1 & lift >2), 5, by="support"))
+```
+
+
+### Data Visualization
+
+first we'll review the interactive scatter plot for all 408638 rules. 
+```{r}
+suppressPackageStartupMessages(install.packages("arulesViz"))
+library(arulesViz)
+plot(ars, engine = "interactive")
+```
+
+Now we'll look at a grouped matrix using new constraints. We use this to compare the support and lift association of lhs and rhs.
+
+```{r}
+somerules <- subset(ars, subset=size(lhs)>1 & confidence >.9 & support >0.5)
+plot(somerules, method = "grouped")
+```
+
+This matrix with the top 21 rules shows the many antecedents that are found within the 4 consequents, {chas=river}" "{crim=low}"   "{black=<8%}"  "{zn=low}:
+```{r}
+plot(somerules, method = "matrix")
+```
+
+Use the 4 consequents to create a network graph. 
+```{r}
+plot(somerules, method = "graph", engine = "htmlwidget")
+```
+
+
+###Experimenting with smaller samples
+```{r}
+d <- data.frame(site=c("tucson","phoenix"), season=c("spring", "summer"), price=c("high", "low"))
+d
+```
+
+```{r}
+d_t <-as(d, "transactions")
+d_t
+
+summary(d_t)
+
+inspect(d_t)
+```

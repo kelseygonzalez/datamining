@@ -1,0 +1,261 @@
+---
+title: 'R exercise 2: Data Preprocessing'
+author: "Kelsey Gonzalez and Laura Werthmann"
+date: "September 17, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load the data 
+```{r}
+rm(list=ls())
+options(scipen = 999) # prevent scientific notation
+suppressPackageStartupMessages(require(dplyr))
+load("LifeExpectancyData.Rdata")
+dplyr::glimpse(data)
+```
+
+
+# Data Preprocessing Exercise 2  
+Review of World Health Organization's Life Expectancy Data taken from [Kaggle](https://www.kaggle.com/kumarajarshi/life-expectancy-who).
+
+
+# String processing    
+Status is character class but it should be a factor. Let's convert it. 
+
+```{r}
+str(data$Status)
+data$Status = as.factor(data$Status)
+class(data$Status)
+```
+
+
+# dealing with unknown values: remove observations or columns with many NAs   
+```{r}
+suppressPackageStartupMessages(require(dplyr))
+missing.value.rows <- filter(data, !complete.cases(data)) 
+missing.value.rows
+```
+
+
+how many NAs in each row?  
+```{r R.options=list(max.print=5)}
+# This function counts the number of NAs in a row.
+apply(data, 1, function(x) sum(is.na(x)))
+```
+
+
+how many NAs in each column? 
+```{r}
+sort(apply(data, 2, function(x) sum(is.na(x))))
+
+```
+
+Because of the high number of Hepatitis B cases missing, we will remove this column from our dataset. Our research questions do not pertain to Hepatitis.
+```{r}
+data = subset(data,select = -c(`Hepatitis B`))
+```
+
+
+Because there is such a high occurence of missing Population data,we will merge in the gapminder dataonline and match on coutnry and year.  Originally we wanted to use the gapminder package, but there are a lot of years that aren't included in that package. 
+```{r}
+# suppressPackageStartupMessages(require(gapminder))
+# data2 <- inner_join(data, gapminder_unfiltered, by = c("Year" = "year", "Country" = "country"))
+```
+
+Importing gapminder population...
+```{r}
+# Population from http://gapm.io/dl_pop
+populations <- readxl::read_xlsx("Data Population - v5 - 1800 to 2100 World Regions and Countries by Gapminder.xlsx", sheet = "data-countries-etc-by-year", col_names = TRUE)
+
+data2 <- inner_join(data, populations, by = c("Year" = "time", "Country" = "name"))
+```
+  
+Importing gapminder gdp   
+```{r}
+# GDP PPP adjusted from http://gapm.io/dgdppc
+library(readr)
+library(tidyr)
+gdp_ppp <- read_csv("total_gdp_ppp_inflation_adjusted.csv")
+gdp_ppp_long <- gather(gdp_ppp, year, gdp_ppp, "1800":"2013")
+gdp_ppp_long$year <- as.numeric(gdp_ppp_long$year)
+data2 <- inner_join(data2, gdp_ppp_long, by = c("Year" = "year", "Country" = "country"))
+
+```
+
+```{r}
+suppressPackageStartupMessages(require(dplyr))
+data3 <-inner_join(data, WB_pop_gdp, by = c("Year" = "Time", "Country" = "Country Name"))
+
+```
+
+
+```{r}
+# test how well new and old pop are correlated (should be extremely high)
+data_na_rm = na.omit(data2)
+cor(data_na_rm$Population, data_na_rm$population)
+plot(data_na_rm$Population, data_na_rm$population)
+```
+
+why is the correlation so low on the original data? 
+```{r}
+data_na_rm[data_na_rm$population > 1.2e+09,]
+```
+It looks like the original data has some inconsistencies and scaling issues of their population variable. Gapminder is consistent, so we will use pop from there and omit Population.
+```{r}
+data2 = subset(data2, select = -`Population`)
+```
+
+
+
+
+What about GDP?
+```{r}
+cor(data_na_rm$GDP, data_na_rm$gdp_ppp)
+plot(data_na_rm$GDP, data_na_rm$gdp_ppp)
+data_na_rm[data_na_rm$population > 1.2e+09,]
+
+```
+
+It seems like the original GDP data is country GDP whereas gdp ppp is of course by purchasing power parity. We will not omit GDP as it is different data, but probably we will rely on gdpPercap. 
+
+# scaling and normalization  
+Most of our variables are zero inflated and/or right skewed. Let's take a few (infant deaths, GDP, Diphtheria) and normalize and scale them.
+
+Z-Score scaling of infant deaths 
+```{r}
+hist(data2$`infant deaths`)
+zscore = function(x){return((x-mean(x))/(sd(x)))}
+data2$infant_scaled = zscore(data2$`infant deaths`)
+data2 %>% select(`infant deaths`, infant_scaled) %>% head()
+
+plot(density(data2$`infant deaths`))
+plot(density(data2$infant_scaled))
+
+```
+
+
+
+Normalize Diptheria using complete normalization
+
+```{r}
+hist(data2$Diphtheria)
+
+data2$dipnormal = scale(data2$Diphtheria, center = TRUE, scale = TRUE)
+data2 %>% select(Diphtheria, dipnormal) %>% head()
+
+plot(density(data2$Diphtheria, na.rm = TRUE))
+lines(density(data2$dipnormal, na.rm = TRUE), add = TRUE)
+
+
+```
+
+# discretizing variables  
+Let's create a discretized version of Life Expectancy using clustering. 
+```{r}
+set.seed(1)
+suppressPackageStartupMessages(library(sampling))
+# remove NAs on life expectancy
+data2 <- na.omit(data2, cols=`Life expectancy`)
+s <- kmeans(data2$`Life expectancy`, 3)
+
+data2$lifecluster <- factor(s$cluster, labels = c(`1` = 'young', `2` = 'middle',`3` = 'high'), ordered = TRUE)
+rm(s)
+plot(data2$`Life expectancy`, data2$lifecluster)
+```
+
+
+## Required Questions  
+
+>1. What attributes are there in your data set?  
+
+Some attributes we found were based on Country economics-> GDP, Status, Total Expenditure, 
+and Population demographics-> BMI, mortality, disease, and schooling.
+
+>2. Do you have highly correlated attributes? How did you find out about the correlations or lack of correlations?  
+
+```{r qqplot=plot}
+suppressPackageStartupMessages(library(car))
+symnum(cor(data2[4:20], use = "complete.obs"))
+```
+
+We found that GDP correlates fully with Percentage Expenditure; 
+Under 5 deaths correlates with infant deaths; 
+and schooling and Income composition of resources is .9 correlated. 
+
+
+```{r}
+suppressPackageStartupMessages(library(DMwR2))
+summary(lm(data2$GDP~ data2$`percentage expenditure`, data=data2))
+```
+
+According to the model's strength, percentage expenditure is highly correlated to GDP. For example, its R-Squared results (0.945) and Adjusted R-Squared results (0.944) were above the typical coefficient strength (.8). 
+
+
+We also found a high correlation between GDP and percentage expenditure with a ggplot: 
+```{r ggplot=plot, echo=FALSE}
+suppressPackageStartupMessages(library(ggplot2))
+ggplot(data = data2,
+       aes(x=data2$GDP,
+           y=data2$`percentage expenditure`)) +
+  geom_point() + ggtitle("Relationship btwn Percentage Expenditure and GDP")
+  
+```
+
+
+and the status of the country (Developing/Developed) shows that more developed states have a higher mean of Life Expectancy, GDP and Percentage Expenditure. 
+```{r}
+aggregate(data2$`Life expectancy`, list(data2$Status), mean, na.rm=TRUE)
+aggregate(data2$GDP, list(data2$Status), mean, na.rm=TRUE)
+aggregate(data2$`percentage expenditure`, list(data2$Status), mean, na.rm=TRUE)
+
+```
+
+>3. Do you have numerical attributes that you might want to discretize? Try at least two methods and compare the differences.
+
+Life Expectancy can be discretized, 
+
+Categorical classification of low, med, and high of Life Expectancy rates using 3 cuts
+```{r}
+data2$category <- cut(data2$`Life expectancy`, 
+                              breaks = 3, 
+                              labels=c('young', 'middle', 'high'))
+dplyr::glimpse(data2$category)
+
+
+
+
+```
+
+
+earlier we binned life expectancy using clusters with the following code:
+```{r eval=FALSE}
+s <- kmeans(data2$`Life expectancy`, 3)
+
+data2$lifecluster <- factor(s$cluster, labels = c(`1` = 'young', `2` = 'middle',`3` = 'high'), ordered = TRUE)
+```
+
+Since we binned using two different methods, let's see how these methods compare in their binning. 
+```{r}
+
+ggplot(data2, aes(`Life expectancy`, y = value, color = variable)) + 
+    geom_point(aes(y = category, col = "cut"), shape = 1) + 
+    geom_point(aes(y = lifecluster, col = "cluster"), shape = 3)
+
+
+ggplot(data2, aes(`Life expectancy`, category, lifecluster)) + geom_point(colour = "red") 
+```
+
+
+
+>4.If you have categorical attributes, use the concept hierarchy generation heuristics (based on attribute value counts) suggested in the textbook to produce some concept hierarchies. How well does this approach work for your attributes?
+
+We couldn't find any variables that could use concept hierarchy. 
+
+```{r}
+save(data2, file = "LifeExpectancyData2.RData")
+
+```
