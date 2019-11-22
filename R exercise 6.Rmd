@@ -1,0 +1,301 @@
+---
+title: 'R exercise 6: Paritioning and Hierarchal Clustering'
+author: "Kelsey Gonzalez and Laura Werthmann"
+date: "Due Nov 27, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
+```
+
+
+Load packages
+```{r}
+<<<<<<< HEAD:R-exercises/R exercise 6.Rmd
+suppressPackageStartupMessages(library(tidyverse)) # for data cleaning and visualization
+#library(ISLR) # for college dataset
+suppressPackageStartupMessages(library(cluster)) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
+suppressPackageStartupMessages(library(Rtsne)) # for t-SNE plot
+load(data)
+=======
+library(tidyverse) # for data cleaning and visualization
+library(ISLR) # for college dataset
+library(cluster) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
+library(Rtsne) # for t-SNE plot
+library(ggdendro)
+>>>>>>> 1d9768eaea87a915856b39d10bcd0e7192a45709:R exercise 6.Rmd
+```
+
+Clustering requires 
+1. Calculating distance among the observations
+2. Choosing a clustering algorithm
+3. Selecting the number of clusters
+
+load data 
+```{r}
+rm(list=ls())
+load("LifeExpectancyData_3.Rdata")
+data$Status = as.factor(data$Status)
+data$Year = as.factor(data$Year)
+data$Country = as.factor(data$Country)
+
+data <- data %>% filter(Year=="2013") %>% select(-Year) %>% drop_na()
+```
+
+calculating distance the Gower distance for mixed variable types in package cluster
+_Gower distance_: For each variable type, a particular distance metric that works well for that type is used and scaled to fall between 0 and 1. Then, a linear combination using user-specified weights (most simply an average) is calculated to create the final distance matrix.   
+The metrics used for each data type are described below:  
+
+_quantitative (interval)_: range-normalized Manhattan distance  
+_ordinal_: variable is first ranked, then Manhattan distance is used with a special adjustment for ties  
+_nominal_: variables of k categories are first converted into k binary columns and then the Dice coefficient is used  
+
+_pros_: Intuitive to understand and straightforward to calculate  
+_cons_: Sensitive to non-normality and outliers present in continuous variables, so transformations as a pre-processing step might be necessary. Also requires an NxN distance matrix to be calculated, which is computationally intensive to keep in-memory for large samples
+Note that due to positive skew in the Enroll variable, a log transformation is conducted internally via the type argument. Instructions to perform additional transformations, like for factors that could be considered as asymmetric binary (such as rare events), can be seen in ?daisy.
+
+Remove college name before clustering
+Use daisy() to compute the distance matrix using ‘gower’
+
+```{r}
+gower_dist <- daisy(data[, -1],
+                    metric = "gower",
+                    type = list(logratio = 3))
+
+# Check attributes to ensure the correct methods are being used (I = interval, N = nominal)
+# Note that despite logratio being called, the type remains coded as "I"
+summary(gower_dist)
+gower_mat <- as.matrix(gower_dist)
+```
+
+
+Output most similar pair, excluding dissimilar scores of 0 (one compared to itself)
+```{r}
+data[
+  which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+
+data[which(gower_mat==max(gower_mat), arr.ind = TRUE)[1, ], ]
+```
+
+
+## Use PAM (partitioning around medoids) to perform the clustering
+Calculate Silhouette width for 2 to 10 clusters using PAM
+
+```{r}
+sil <- c(NA)
+for(i in 2:10){
+  pam_fit <- pam(gower_mat, diss=TRUE, k=i)
+  sil[i] <-pam_fit$silinfo$avg.width
+}
+```
+
+
+Plot silhouette width (higher is better, clusters = 2 or 3 has the highest sil value)
+```{r}
+plot(1:10, sil,
+xlab = "Number of clusters",
+ylab = "Silhouette Width")
+lines(1:10, sil)
+```
+
+
+Cluster Interpretation:via Descriptive Statistics
+```{r}
+pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
+# add cluster labels to the data. We will use result1 later
+data_clean <- data.frame(data, pam_fit$cluster)
+# show clustering results by college
+result1 <- data_clean %>% select(Country,pam_fit.cluster)
+View(result1)
+```
+
+group_by cluster and then compute the summary data (means, median, etc) for each cluster
+```{r}
+data_results <- data_clean %>%
+  mutate(cluster = pam_fit.cluster) %>% #add the cluster column
+  select(-pam_fit.cluster) %>% 
+  group_by(cluster) %>% #group universities by its cluster 
+  do(the_summary = summary(.)) #do: summarize by group/cluster,add the_summary column
+
+data_results$the_summary
+```
+The results suggest
+Cluster 1, is mainly developing countries in Africa 
+Cluster 2, is mainly developing countries in the Americas and Asia
+Cluster 3, is mainly developed countries in Europe 
+
+Output medoids: representative university in each cluster:
+```{r}
+data[pam_fit$medoids, ]
+```
+
+## Cluster Interpretation: via visualization
+One way to visualize many variables in a lower dimensional space is with t-distributed stochastic neighborhood embedding, or t-SNE. 
+This method is a dimension reduction technique that tries to preserve local structure so as to make clusters visible in a 2D or 3D visualization.
+it is a powerful but also sometimes puzzling technique, more see https://distill.pub/2016/misread-tsne/ 
+```{r}
+tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
+
+tsne_data <- tsne_obj$Y %>%
+  data.frame() %>% 
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(pam_fit$clustering),
+         name = data_clean$Country)
+
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster)) + 
+  geom_text(data=subset(tsne_data[pam_fit$medoids, ]), # add names of centroids in 
+            aes(X,Y,label=name))
+```
+
+
+## cluster the same data set using kmeans
+different implementations of kmeans are provided throught the algorithm argument to 
+kmeans() method: "Hartigan-Wong", "Lloyd", "Forgy", "MacQueen". The default H-W implementation works well in most cases.  
+To know more about the differences see https://core.ac.uk/download/pdf/27210461.pdf 
+kmeans() take numeric data, 
+
+```{r}
+
+# z-score transformation to scale the variables. Scaling is needed because we will use euclidean distant
+data_scaled <- data %>% 
+  select(-c(Status,region)) %>%  # remove factor variables
+  mutate_at(scale, .vars=vars(-Country))
+data_scaled %>% head()
+
+```
+
+get distance matrix, excluding first column: Country
+
+note: nstart is the parameter that allows the user to try multiple sets of initial centroids. You should use a nstart > 1, for example, nstart=25, this will run kmeans nstart number of times, each time with a different set of initial centroids. kmeans will then select the one with the lowest within cluster variation.
+```{r}
+dist_mat <- dist(data_scaled[, -1], method="euclidean")
+rownames
+
+
+avgS <- c() #initiate an empty vector
+
+for(k in 2:10){
+  kmeans_cl <- kmeans(data_scaled[,-1], centers=k, iter.max=500, nstart=1)
+  s <- silhouette(kmeans_cl$cluster, dist_mat)
+  avgS <- c(avgS, mean(s[,3])) # take the mean of sil_width of all observations, and save it in the avgS vector
+}
+
+data.frame(nClus=2:10, Silh=avgS)
+plot(2:10, avgS,
+  xlab = "Number of clusters",
+  ylab = "Silhouette Width")
+  lines(2:10, avgS)
+```
+
+
+2 or 4 clusters seem to be the best, with margin differences between them
+
+```{r}
+kmeans_fit <- kmeans(data_scaled[,-1], 4)
+```
+
+get cluster means
+```{r}
+aggregate(data_scaled[,-1],by=list(kmeans_fit$cluster),FUN=mean)
+``` 
+
+append cluster assignment to data. As seen in the clusters, the 4th cluster is mostly useless. 
+```{r}
+data_scaled <- data.frame(data_scaled, kmeans_fit$cluster)
+
+# Cluster Interpretation:via visualization
+tsne_obj <- Rtsne(dist_mat, is_distance = TRUE)
+tsne_obj$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(kmeans_fit$cluster),
+         name = data_scaled$name) %>% 
+  ggplot(aes(x = X, y = Y)) +
+  geom_point(aes(color = cluster))
+```
+
+
+
+now create a confusion table to see the differences in the two clusterings
+40+53+28 = 121 universities were in the same clusters(121/139 = 87% agreement)
+```{r}
+result2 <- data_scaled
+table(result1$pam_fit.cluster, result2$kmeans_fit.cluster)
+```
+
+
+##build a hierarchical cluster
+method argument takes the agglomeration method to be used. This should be (an unambiguous abbreviation of) one of "ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+```{r}
+h <- hclust(d = as.dist(gower_dist), method="complete")
+# plot the dendrogram #hang decides where to start labels on axis. -0.1 is negative, so the x-axis labels will hang down from 0
+plot(h, hang=-0.1)
+
+#a nicer dengrogram (kind of) since the last one doesn't have labels
+data_dendro <- data %>% select(-c(region, Status,Country)) %>% scale()
+rownames(data_dendro) <- data$Country
+data_dendro <- dist(data_dendro, method="manhattan")
+data_dendro <- as.dendrogram(hclust(data_dendro, method="ward.D2"))
+dendro.plot <- ggdendrogram(data = data_dendro, rotate = TRUE) + 
+  theme(axis.text.y = element_text(size = 5)) 
+print(dendro.plot) #better plot
+```
+
+If we want to cluster at a height of about 0.3...
+```{r}
+clus <- cutree(h, h=.3)
+table(clus)
+# or just 3 clusters...
+clus3 <- cutree(h, 3)
+table(clus3)
+```
+clus is a vector with the number of the cluster to which each observation was assigned. Observations keep the original order as in the dissimilar matrix.
+
+compare with pam 3-cluter results (we verified that the cluster labels 1, 2, 3 match PAM's mediods result)
+```{r}
+table(result1$pam_fit.cluster, clus)
+```
+
+
+
+##use DIANA in the cluster package for divisive hierarchical clustering
+because we provided a dissimilarity matrix, we don't need to supply other arguments to this function.
+dissimilarity matrix incoporated the distance measures and data normalization
+```{r}
+d <- diana(gower_dist)
+d3 <- cutree(d, 3)
+
+# visualize Diana
+plot(d, which = 2, nmax.lab = 100)
+
+table(result1$pam_fit.cluster, d3) #(we verified that the cluster labels 1, 2, 3 match PAM mediods result)
+table(clus3, d3) # versus the hclust from above
+```
+the results aren't really consisent.
+
+
+[REQUIRED]
+
+1.	Students: run Kmean or PAM on your dataset (run it multiple times without setting set.seed()). Report differences in performance between runs (Silhouette width or overlaps of observations in different clustering). Can you make sense of the clusters produced?
+
+2.	Run a hierarchical method on your dataset, try a couple of different cuts. Are these results more meaningful than those from the participation method?
+
+
+
+
+
+
+
+
+
+
+
+
+
