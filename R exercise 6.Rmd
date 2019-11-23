@@ -16,19 +16,16 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 
 Load packages
 ```{r}
-<<<<<<< HEAD:R-exercises/R exercise 6.Rmd
 suppressPackageStartupMessages(library(tidyverse)) # for data cleaning and visualization
 #library(ISLR) # for college dataset
 suppressPackageStartupMessages(library(cluster)) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
 suppressPackageStartupMessages(library(Rtsne)) # for t-SNE plot
-load(data)
-=======
+load('LifeExpectancyData_3.Rdata')
 library(tidyverse) # for data cleaning and visualization
 library(ISLR) # for college dataset
 library(cluster) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
 library(Rtsne) # for t-SNE plot
 library(ggdendro)
->>>>>>> 1d9768eaea87a915856b39d10bcd0e7192a45709:R exercise 6.Rmd
 ```
 
 Clustering requires 
@@ -48,14 +45,17 @@ data <- data %>% filter(Year=="2013") %>% select(-Year) %>% drop_na()
 ```
 
 calculating distance the Gower distance for mixed variable types in package cluster
-_Gower distance_: For each variable type, a particular distance metric that works well for that type is used and scaled to fall between 0 and 1. Then, a linear combination using user-specified weights (most simply an average) is calculated to create the final distance matrix.   
+
+**_Gower distance_:** For each variable type, a particular distance metric that works well for that type is used and scaled to fall between 0 and 1. Then, a linear combination using user-specified weights (most simply an average) is calculated to create the final distance matrix.   
+
 The metrics used for each data type are described below:  
 
 _quantitative (interval)_: range-normalized Manhattan distance  
 _ordinal_: variable is first ranked, then Manhattan distance is used with a special adjustment for ties  
 _nominal_: variables of k categories are first converted into k binary columns and then the Dice coefficient is used  
 
-_pros_: Intuitive to understand and straightforward to calculate  
+_pros_: Intuitive to understand and straightforward to calculate 
+
 _cons_: Sensitive to non-normality and outliers present in continuous variables, so transformations as a pre-processing step might be necessary. Also requires an NxN distance matrix to be calculated, which is computationally intensive to keep in-memory for large samples
 Note that due to positive skew in the Enroll variable, a log transformation is conducted internally via the type argument. Instructions to perform additional transformations, like for factors that could be considered as asymmetric binary (such as rare events), can be seen in ?daisy.
 
@@ -100,8 +100,8 @@ Plot silhouette width (higher is better, clusters = 2 or 3 has the highest sil v
 ```{r}
 plot(1:10, sil,
 xlab = "Number of clusters",
-ylab = "Silhouette Width")
-lines(1:10, sil)
+ylab = "Silhouette Width",
+lines(1:10, sil))
 ```
 
 
@@ -110,27 +110,68 @@ Cluster Interpretation:via Descriptive Statistics
 pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
 # add cluster labels to the data. We will use result1 later
 data_clean <- data.frame(data, pam_fit$cluster)
-# show clustering results by college
+# show clustering results by country
 result1 <- data_clean %>% select(Country,pam_fit.cluster)
 View(result1)
 ```
+
+#1.run Kmean or PAM on your dataset (run it multiple times without setting set.seed()). Report differences in performance between runs (Silhouette width or overlaps of observations in different clustering). Can you make sense of the clusters produced?
+
+Our data shows a lot of overlapping variables within the 3 clusters. As we increase the distance, the point variability lowers and spreads the data out more, providing more sparse data making it harder to view "clear" clusters.
+
+...Would still like to add labels.
+
+the 91.31% of point vairability showing the information of the 3 clusters on a 2d scale.
+```{r}
+library(cluster)
+row.names(result1) = 'Country'
+PAM3 <- pam(data[2:4],3)
+clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
+
+```
+
+Another run of the data with differnt distance measures shows a lower point variability at 63.68%
+```{r}
+names(result1) = 'Country'
+PAM3 <- pam(data[1:5],3)
+clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
+```
+
+Two clusters doesn't change much, just in that now there are two clusters.
+```{r}
+names(result1) = 'Country'
+PAM3 <- pam(data[2:4],2)
+clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
+```
+
+A slightly smaller distance interval [2:5] shows a higher point variability than before, but lower than the first instance of [2:4]
+```{r}
+library(cluster)
+PAM3 <- pam(data[2:5],3)
+clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
+```
+
 
 group_by cluster and then compute the summary data (means, median, etc) for each cluster
 ```{r}
 data_results <- data_clean %>%
   mutate(cluster = pam_fit.cluster) %>% #add the cluster column
   select(-pam_fit.cluster) %>% 
-  group_by(cluster) %>% #group universities by its cluster 
+  group_by(cluster) %>% #group countries by its cluster 
   do(the_summary = summary(.)) #do: summarize by group/cluster,add the_summary column
 
 data_results$the_summary
 ```
 The results suggest
-Cluster 1, is mainly developing countries in Africa 
-Cluster 2, is mainly developing countries in the Americas and Asia
-Cluster 3, is mainly developed countries in Europe 
 
-Output medoids: representative university in each cluster:
+Cluster 1, is mainly developing countries in Africa with the least life expectancy at mean of 62 yrs and a medain of 61 yrs old. 
+
+Cluster 2, is mainly developing countries in the Americas and Asia with the median life expectancy at mean of 73 yrs and a medain of 73.9 yrs old. 
+
+Cluster 3, is mainly developed countries in Europe with the most life expectancy at mean of 80 yrs and a medain of 81 yrs old. 
+
+
+Output medoids: representative country in each cluster:
 ```{r}
 data[pam_fit$medoids, ]
 ```
@@ -156,8 +197,9 @@ ggplot(aes(x = X, y = Y), data = tsne_data) +
 
 
 ## cluster the same data set using kmeans
-different implementations of kmeans are provided throught the algorithm argument to 
-kmeans() method: "Hartigan-Wong", "Lloyd", "Forgy", "MacQueen". The default H-W implementation works well in most cases.  
+different implementations of k-means are provided throught the algorithm argument to 
+kmeans() method for all country attrubutes
+
 To know more about the differences see https://core.ac.uk/download/pdf/27210461.pdf 
 kmeans() take numeric data, 
 
@@ -190,15 +232,15 @@ for(k in 2:10){
 data.frame(nClus=2:10, Silh=avgS)
 plot(2:10, avgS,
   xlab = "Number of clusters",
-  ylab = "Silhouette Width")
-  lines(2:10, avgS)
+  ylab = "Silhouette Width",
+  lines(2:10, avgS))
 ```
 
 
-2 or 4 clusters seem to be the best, with margin differences between them
+2 or 3 clusters seem to be the best, with marginal differences between them
 
 ```{r}
-kmeans_fit <- kmeans(data_scaled[,-1], 4)
+kmeans_fit <- kmeans(data_scaled[,-1], 2)
 ```
 
 get cluster means
@@ -221,46 +263,129 @@ tsne_obj$Y %>%
   geom_point(aes(color = cluster))
 ```
 
-
-
-now create a confusion table to see the differences in the two clusterings
-40+53+28 = 121 universities were in the same clusters(121/139 = 87% agreement)
+Now try 3 clusters
 ```{r}
-result2 <- data_scaled
-table(result1$pam_fit.cluster, result2$kmeans_fit.cluster)
+kmeans_fit <- kmeans(data_scaled[,-1], 3)
 ```
 
+get cluster means
+```{r}
+aggregate(data_scaled[,-1],by=list(kmeans_fit$cluster),FUN=mean)
+``` 
 
-##build a hierarchical cluster
-method argument takes the agglomeration method to be used. This should be (an unambiguous abbreviation of) one of "ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+append cluster assignment to data. As seen in the clusters, the 4th cluster is mostly useless. 
+```{r}
+data_scaled <- data.frame(data_scaled, kmeans_fit$cluster)
+
+# Cluster Interpretation:via visualization
+tsne_obj <- Rtsne(dist_mat, is_distance = TRUE)
+tsne_obj$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(kmeans_fit$cluster),
+         name = data_scaled$name) %>% 
+  ggplot(aes(x = X, y = Y)) +
+  geom_point(aes(color = cluster))
+```
+
+And just for fun, 6 to coincide with our silhouette graph.
+```{r}
+kmeans_fit <- kmeans(data_scaled[,-1], 6)
+```
+
+get cluster means
+```{r}
+aggregate(data_scaled[,-1],by=list(kmeans_fit$cluster),FUN=mean)
+``` 
+
+append cluster assignment to data. As seen in the clusters, the 4th cluster is mostly useless. 
+```{r}
+data_scaled <- data.frame(data_scaled, kmeans_fit$cluster)
+
+# Cluster Interpretation:via visualization
+tsne_obj <- Rtsne(dist_mat, is_distance = TRUE)
+tsne_obj$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(kmeans_fit$cluster),
+         name = data_scaled$name) %>% 
+  ggplot(aes(x = X, y = Y)) +
+  geom_point(aes(color = cluster))
+```
+After trying kmeans multiple times, the optimum clusters seem to be two, all other clusters are outliers, which might prove interesting with future research. 
+
+
+
+#2.Run a hierarchical method on your dataset, try a couple of different cuts. Are these results more meaningful than those from the participation method?
+
+
+//method argument takes the agglomeration method to be used. This should be (an unambiguous abbreviation of) one of:
+
+//"ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
 ```{r}
 h <- hclust(d = as.dist(gower_dist), method="complete")
 # plot the dendrogram #hang decides where to start labels on axis. -0.1 is negative, so the x-axis labels will hang down from 0
 plot(h, hang=-0.1)
+```
 
 #a nicer dengrogram (kind of) since the last one doesn't have labels
+
+```{r}
 data_dendro <- data %>% select(-c(region, Status,Country)) %>% scale()
 rownames(data_dendro) <- data$Country
 data_dendro <- dist(data_dendro, method="manhattan")
 data_dendro <- as.dendrogram(hclust(data_dendro, method="ward.D2"))
 dendro.plot <- ggdendrogram(data = data_dendro, rotate = TRUE) + 
-  theme(axis.text.y = element_text(size = 5)) 
+  theme(axis.text.y = element_text(size = 8)) 
 print(dendro.plot) #better plot
 ```
 
-If we want to cluster at a height of about 0.3...
+If we want to cluster at a height of about 0.3 is shows 5 clusters at the 3rd level, one that is much higher and one that is much lower than the others.
 ```{r}
 clus <- cutree(h, h=.3)
 table(clus)
-# or just 3 clusters...
+```
+
+At just 3 clusters we find a disproportionate amount of variables per cluster.
+```{r}
 clus3 <- cutree(h, 3)
 table(clus3)
 ```
-clus is a vector with the number of the cluster to which each observation was assigned. Observations keep the original order as in the dissimilar matrix.
+
+the height of .4 is similar to .3, where two of the clusters were now combined.
+```{r}
+clus <- cutree(h, h=.4)
+table(clus)
+```
+
+Four clusters are exactly the same as a .4 height.
+```{r}
+clus <- cutree(h, 4)
+table(clus)
+```
+
+
+```{r}
+clus <- cutree(h, h=.2)
+#plot(clus)
+table(clus)
+```
+```{r}
+clus <- cutree(h, h=.5)
+table(clus)
+```
+
+As expected, the lower height you go (.2), the more clusters with a disperesed amount of variables in each. Whereas if you go to a higher height (.5) the less clusters you get with very different variables in each.
+
+
+```{r}
+clus <- cutree(h, 5)
+table(clus)
+```
 
 compare with pam 3-cluter results (we verified that the cluster labels 1, 2, 3 match PAM's mediods result)
 ```{r}
-table(result1$pam_fit.cluster, clus)
+##table(result1$pam_fit.cluster, clus)
 ```
 
 
@@ -275,17 +400,15 @@ d3 <- cutree(d, 3)
 # visualize Diana
 plot(d, which = 2, nmax.lab = 100)
 
-table(result1$pam_fit.cluster, d3) #(we verified that the cluster labels 1, 2, 3 match PAM mediods result)
-table(clus3, d3) # versus the hclust from above
+##table(result1$pam_fit.cluster, d3) #(we verified that the cluster labels 1, 2, 3 match PAM mediods result)
+##table(clus3, d3) # versus the hclust from above
+
 ```
-the results aren't really consisent.
 
 
-[REQUIRED]
 
-1.	Students: run Kmean or PAM on your dataset (run it multiple times without setting set.seed()). Report differences in performance between runs (Silhouette width or overlaps of observations in different clustering). Can you make sense of the clusters produced?
 
-2.	Run a hierarchical method on your dataset, try a couple of different cuts. Are these results more meaningful than those from the participation method?
+
 
 
 
