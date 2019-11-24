@@ -9,7 +9,7 @@ Code and r scripts are created for [Hong Cui's](https://ischool.arizona.edu/peop
 [Exercise 3](https://kelseygonzalez.github.io/datamining/R-exercise-3.html)  
 [Exercise 4](https://kelseygonzalez.github.io/datamining/R-exercise-4.html)  
 Exercise 5  
-Exercise 6  
+[Exercise 6](https://github.com/kelseygonzalez/datamining/blob/master/R-exercise-6.html)  
   
 
 
