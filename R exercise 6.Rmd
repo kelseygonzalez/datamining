@@ -84,7 +84,7 @@ data[which(gower_mat==max(gower_mat), arr.ind = TRUE)[1, ], ]
 ```
 
 
-## Use PAM (partitioning around medoids) to perform the clustering
+### Use PAM (partitioning around medoids) to perform the clustering
 Calculate Silhouette width for 2 to 10 clusters using PAM
 
 ```{r}
@@ -96,16 +96,18 @@ for(i in 2:10){
 ```
 
 
-Plot silhouette width (higher is better, clusters = 2 or 3 has the highest sil value)
 ```{r}
 plot(1:10, sil,
 xlab = "Number of clusters",
 ylab = "Silhouette Width",
 lines(1:10, sil))
 ```
+Plot silhouette width (higher is better, clusters = 2 or 3 has the highest sil value; 4 and 5 are close seconds.)
 
 
-Cluster Interpretation:via Descriptive Statistics
+
+
+Cluster Interpretation: via Descriptive Statistics
 ```{r}
 pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
 # add cluster labels to the data. We will use result1 later
@@ -115,16 +117,15 @@ result1 <- data_clean %>% select(Country,pam_fit.cluster)
 View(result1)
 ```
 
-#1.run Kmean or PAM on your dataset (run it multiple times without setting set.seed()). Report differences in performance between runs (Silhouette width or overlaps of observations in different clustering). Can you make sense of the clusters produced?
+## 1.run Kmean or PAM on your dataset (run it multiple times without setting set.seed()). Report differences in performance between runs (Silhouette width or overlaps of observations in different clustering). Can you make sense of the clusters produced?
 
 Our data shows a lot of overlapping variables within the 3 clusters. As we increase the distance, the point variability lowers and spreads the data out more, providing more sparse data making it harder to view "clear" clusters.
 
-...Would still like to add labels.
 
 the 91.31% of point vairability showing the information of the 3 clusters on a 2d scale.
 ```{r}
 library(cluster)
-row.names(result1) = 'Country'
+#row.names(result1) = 'Country'
 PAM3 <- pam(data[2:4],3)
 clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
 
@@ -176,7 +177,8 @@ Output medoids: representative country in each cluster:
 data[pam_fit$medoids, ]
 ```
 
-## Cluster Interpretation: via visualization
+
+
 One way to visualize many variables in a lower dimensional space is with t-distributed stochastic neighborhood embedding, or t-SNE. 
 This method is a dimension reduction technique that tries to preserve local structure so as to make clusters visible in a 2D or 3D visualization.
 it is a powerful but also sometimes puzzling technique, more see https://distill.pub/2016/misread-tsne/ 
@@ -316,7 +318,7 @@ After trying kmeans multiple times, the optimum clusters seem to be two, all oth
 
 
 
-#2.Run a hierarchical method on your dataset, try a couple of different cuts. Are these results more meaningful than those from the participation method?
+##2.Run a hierarchical method on your dataset, try a couple of different cuts. Are these results more meaningful than those from the participation method?
 
 
 //method argument takes the agglomeration method to be used. This should be (an unambiguous abbreviation of) one of:
@@ -328,7 +330,7 @@ h <- hclust(d = as.dist(gower_dist), method="complete")
 plot(h, hang=-0.1)
 ```
 
-#a nicer dengrogram (kind of) since the last one doesn't have labels
+a nicer dengrogram (kind of) since the last one doesn't have labels
 
 ```{r}
 data_dendro <- data %>% select(-c(region, Status,Country)) %>% scale()
