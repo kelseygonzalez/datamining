@@ -126,7 +126,7 @@ the 91.31% of point vairability showing the information of the 3 clusters on a 2
 ```{r}
 library(cluster)
 #row.names(result1) = 'Country'
-PAM3 <- pam(data[2:4],3)
+PAM3 <- pam(data[3:21],3)
 clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
 
 ```
