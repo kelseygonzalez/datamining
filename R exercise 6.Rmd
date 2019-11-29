@@ -16,16 +16,15 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,fig.width=5)
 
 Load packages
 ```{r}
-suppressPackageStartupMessages(library(tidyverse)) # for data cleaning and visualization
-#library(ISLR) # for college dataset
-suppressPackageStartupMessages(library(cluster)) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
-suppressPackageStartupMessages(library(Rtsne)) # for t-SNE plot
-load('LifeExpectancyData_3.Rdata')
 library(tidyverse) # for data cleaning and visualization
 library(ISLR) # for college dataset
 library(cluster) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
 library(Rtsne) # for t-SNE plot
 library(ggdendro)
+library(factoextra) #for hopkins statistic
+library(clustertend) #for hopkins statistic
+
+
 ```
 
 Clustering requires 
@@ -41,8 +40,30 @@ data$Status = as.factor(data$Status)
 data$Year = as.factor(data$Year)
 data$Country = as.factor(data$Country)
 
-data <- data %>% filter(Year=="2013") %>% select(-Year) %>% drop_na()
+data <- data %>% filter(Year=="2013") %>% select(-c(Year, Polio, "percentage expenditure", Measles, `HIV/AIDS`)) %>% drop_na()
+
+#create a quick df with only numberical variables
+data_no_cat <- data %>% select(-Status, -region, -Country)
+data_no_cat <- as.data.frame(data_no_cat)
+rownames(data_no_cat) <- data$Country
 ```
+
+First things first, do our data even have a natural clustering tendency?
+the smaller the result, the higher clustering tendency
+```{r}
+#Hopkins, for numerical data only 
+# Compute Hopkins statistic for iris dataset:n must be no larger than num of samples
+# seed set internally in the function, always give the same result.
+res <- get_clust_tendency(data_no_cat, n=138, graph = TRUE)
+res$hopkins_stat
+res$plot
+
+set.seed(1)
+res <- hopkins(data_no_cat, n = 138)
+res$H #very small, < 0.5, good clustering tendency
+```
+
+
 
 calculating distance the Gower distance for mixed variable types in package cluster
 
@@ -65,12 +86,18 @@ Use daisy() to compute the distance matrix using ‘gower’
 ```{r}
 gower_dist <- daisy(data[, -1],
                     metric = "gower",
-                    type = list(logratio = 3))
+                    type = list(logratio = "GDP", 
+                                logratio = "Population"))
 
 # Check attributes to ensure the correct methods are being used (I = interval, N = nominal)
 # Note that despite logratio being called, the type remains coded as "I"
 summary(gower_dist)
+
+# cleaning it up
 gower_mat <- as.matrix(gower_dist)
+rownames(gower_mat) <- colnames(gower_mat) <- data$Country
+
+
 ```
 
 
@@ -109,12 +136,14 @@ Plot silhouette width (higher is better, clusters = 2 or 3 has the highest sil v
 
 Cluster Interpretation: via Descriptive Statistics
 ```{r}
-pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
+pam_fit <- pam(gower_dist, diss = TRUE, k = 7)
 # add cluster labels to the data. We will use result1 later
 data_clean <- data.frame(data, pam_fit$cluster)
 # show clustering results by country
 result1 <- data_clean %>% select(Country,pam_fit.cluster)
 View(result1)
+clusplot(pam_fit)
+
 ```
 
 ## 1.run Kmean or PAM on your dataset (run it multiple times without setting set.seed()). Report differences in performance between runs (Silhouette width or overlaps of observations in different clustering). Can you make sense of the clusters produced?
@@ -124,34 +153,40 @@ Our data shows a lot of overlapping variables within the 3 clusters. As we incre
 
 the 91.31% of point vairability showing the information of the 3 clusters on a 2d scale.
 ```{r}
+<<<<<<< HEAD
 library(cluster)
 #row.names(result1) = 'Country'
 PAM3 <- pam(data[3:21],3)
+=======
+PAM3 <- pam(data[2:4],3)
+>>>>>>> fa26c8293a3ac213580490f2ffa7a3495bd8b517
 clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
 
 ```
 
 Another run of the data with differnt distance measures shows a lower point variability at 63.68%
 ```{r}
-names(result1) = 'Country'
 PAM3 <- pam(data[1:5],3)
 clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
 ```
 
 Two clusters doesn't change much, just in that now there are two clusters.
 ```{r}
-names(result1) = 'Country'
 PAM3 <- pam(data[2:4],2)
 clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
 ```
 
 A slightly smaller distance interval [2:5] shows a higher point variability than before, but lower than the first instance of [2:4]
 ```{r}
-library(cluster)
 PAM3 <- pam(data[2:5],3)
 clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
 ```
 
+A plot with all numeric columns 
+```{r}
+PAM3 <- pam(data[3:16],3)
+clusplot(PAM3, color=TRUE, shade=T, labels =3, lines=0)
+```
 
 group_by cluster and then compute the summary data (means, median, etc) for each cluster
 ```{r}
@@ -165,12 +200,13 @@ data_results$the_summary
 ```
 The results suggest
 
-Cluster 1, is mainly developing countries in Africa with the least life expectancy at mean of 62 yrs and a medain of 61 yrs old. 
-
-Cluster 2, is mainly developing countries in the Americas and Asia with the median life expectancy at mean of 73 yrs and a medain of 73.9 yrs old. 
-
-Cluster 3, is mainly developed countries in Europe with the most life expectancy at mean of 80 yrs and a medain of 81 yrs old. 
-
+_Cluster 1_:Developing countries in Asia with a LE of 68 with a mean GDP of 1,283.  
+_Cluster 2_: Developing countries in Europe with a mean LE of 76 with a mean GDP of 9,872.  
+_Cluster 3_: Developing countries in Africa with a mean LE of 61 with a mean GDP of 1,962.   
+_Cluster 4_: Developing countries in the Americas with a mean LE of 74 with a mean GDP of 7,347.  
+_Cluster 5_: Developing countries in Asia with a mean LE of 72 with a mean GDP of 5,052.  
+_Cluster 6_: Developed countries in Europe and Asia with a mean LE of 80 with a mean GDP of 20,710.  
+_Cluster 7_: Developing countries in Oceania with a mean LE of 69 with a mean GDP of 2,651.  
 
 Output medoids: representative country in each cluster:
 ```{r}
@@ -265,9 +301,9 @@ tsne_obj$Y %>%
   geom_point(aes(color = cluster))
 ```
 
-Now try 3 clusters
+Now try 7 clusters
 ```{r}
-kmeans_fit <- kmeans(data_scaled[,-1], 3)
+kmeans_fit <- kmeans(data_scaled[,-1], 7)
 ```
 
 get cluster means
@@ -290,9 +326,9 @@ tsne_obj$Y %>%
   geom_point(aes(color = cluster))
 ```
 
-And just for fun, 6 to coincide with our silhouette graph.
+And just for fun, 9 to coincide with our silhouette graph.
 ```{r}
-kmeans_fit <- kmeans(data_scaled[,-1], 6)
+kmeans_fit <- kmeans(data_scaled[,-1], 9)
 ```
 
 get cluster means
@@ -321,9 +357,10 @@ After trying kmeans multiple times, the optimum clusters seem to be two, all oth
 ##2.Run a hierarchical method on your dataset, try a couple of different cuts. Are these results more meaningful than those from the participation method?
 
 
-//method argument takes the agglomeration method to be used. This should be (an unambiguous abbreviation of) one of:
+>method argument takes the agglomeration method to be used. This should be (an unambiguous abbreviation of) one of:
 
-//"ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+>"ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+
 ```{r}
 h <- hclust(d = as.dist(gower_dist), method="complete")
 # plot the dendrogram #hang decides where to start labels on axis. -0.1 is negative, so the x-axis labels will hang down from 0
@@ -331,7 +368,6 @@ plot(h, hang=-0.1)
 ```
 
 a nicer dengrogram (kind of) since the last one doesn't have labels
-
 ```{r}
 data_dendro <- data %>% select(-c(region, Status,Country)) %>% scale()
 rownames(data_dendro) <- data$Country
@@ -342,7 +378,7 @@ dendro.plot <- ggdendrogram(data = data_dendro, rotate = TRUE) +
 print(dendro.plot) #better plot
 ```
 
-If we want to cluster at a height of about 0.3 is shows 5 clusters at the 3rd level, one that is much higher and one that is much lower than the others.
+If we want to cluster at a height of about 0.3 is shows 6 clusters at the 3rd level. They seem to be evenly spread except cluster 6. 
 ```{r}
 clus <- cutree(h, h=.3)
 table(clus)
@@ -372,6 +408,7 @@ clus <- cutree(h, h=.2)
 #plot(clus)
 table(clus)
 ```
+
 ```{r}
 clus <- cutree(h, h=.5)
 table(clus)
@@ -381,13 +418,13 @@ As expected, the lower height you go (.2), the more clusters with a disperesed a
 
 
 ```{r}
-clus <- cutree(h, 5)
+clus <- cutree(h, 7)
 table(clus)
 ```
 
-compare with pam 3-cluter results (we verified that the cluster labels 1, 2, 3 match PAM's mediods result)
+compare with pam 3-cluter results 
 ```{r}
-##table(result1$pam_fit.cluster, clus)
+table(result1$pam_fit.cluster, clus)
 ```
 
 
@@ -397,13 +434,13 @@ because we provided a dissimilarity matrix, we don't need to supply other argume
 dissimilarity matrix incoporated the distance measures and data normalization
 ```{r}
 d <- diana(gower_dist)
-d3 <- cutree(d, 3)
+d7 <- cutree(d, 7)
 
 # visualize Diana
 plot(d, which = 2, nmax.lab = 100)
 
-##table(result1$pam_fit.cluster, d3) #(we verified that the cluster labels 1, 2, 3 match PAM mediods result)
-##table(clus3, d3) # versus the hclust from above
+table(result1$pam_fit.cluster, d7)
+table(clus, d7) # versus the hclust from above
 
 ```
 
