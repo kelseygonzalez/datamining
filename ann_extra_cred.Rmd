@@ -1,0 +1,115 @@
+---
+title: "extra_cred_ann"
+author: "Laura.w"
+date: "11/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressPackageStartupMessages(install.packages("neuralnet"))
+suppressPackageStartupMessages(install.packages("NeuralNetTools"))
+suppressPackageStartupMessages(install.packages("h2o"))
+
+library(nnet) #base r packacge supports feed forward with one hidden #layer.
+library(h2o) #used for deep learning - feed forward multilayer ANN - #It is the R interface for 'H2O', the scalable open source machine #learning
+#platform that offers parallelized implementations of many #supervised and
+#unsupervised machine learning algorithms such as Generalized Linear
+#Models, Gradient Boosting Machines (including XGBoost), Random #Forests,
+#Deep Neural Networks (Deep Learning), Stacked Ensembles, Naive #Bayes, Cox
+#Proportional Hazards, K-Means, PCA, Word2Vec, as well as a fully #automatic
+#machine learning algorithm (AutoML). 
+
+library(NeuralNetTools)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+
+```{r}
+rm(list=ls())
+load("LifeExpectancyData_3.Rdata")
+data$Status = as.factor(data$Status)
+data$Year = as.factor(data$Year)
+data$Country = as.factor(data$Country)
+data$region = as.factor(data$region)
+
+data <- data %>% drop_na()
+
+```
+
+```{r}
+#data_fil <- data %>% filter(Year=="2013") %>% select(-c("Country", "Year", "infant deaths", "Alcohol", "Adult Mortality", "under-five deaths", "Diphtheria", "HIV/AIDS")) %>% drop_na()
+
+```
+
+```{r}
+
+#life expectancy, population, gdp, Income composition of resources, percentage expenditure, BMI
+(data$`Life expectancy` <- as.vector(scale(data$`Life expectancy`, center = min(data$`Life expectancy`), scale=max(data$`Life expectancy`)-min(data$`Life expectancy`))))
+
+(data$Population <- as.vector(scale(data$Population, center = min(data$Population), scale=max(data$Population)-min(data$Population))))
+
+(data$GDP <- as.vector(scale(data$GDP, center = min(data$GDP), scale=max(data$GDP)-min(data$GDP))))
+
+(data$`Income composition of resources` <- as.vector(scale(data$`Income composition of resources`, center = min(data$`Income composition of resources`), scale=max(data$`Income composition of resources`)-min(data$`Income composition of resources`))))
+
+(data$`percentage expenditure` <- as.vector(scale(data$`percentage expenditure`, center = min(data$`percentage expenditure`), scale=max(data$`percentage expenditure`)-min(data$`percentage expenditure`))))
+
+(data$BMI <- as.vector(scale(data$BMI, center = min(data$BMI), scale=max(data$BMI)-min(data$BMI))))
+
+
+set.seed(97)
+summary(data)
+```
+
+Without scaling - some of the values don't match what is expected from the variables.
+```{r}
+(data_fil$`Life expectancy` <- as.vector(scale(data_fil$`Life expectancy`, center = min(data_fil$`Life expectancy`)))) #scale=max(data_fil$`Life expectancy`)-min(data_fil$`Life expectancy`))))
+
+(data_fil$Population <- as.vector(scale(data_fil$Population, center = min(data_fil$Population)))) #scale=max(data_fil$Population)-min(data_fil$Population))))
+
+(data_fil$GDP <- as.vector(scale(data_fil$GDP, center = min(data_fil$GDP)))) #scale=max(data_fil$GDP)-min(data_fil$GDP))))
+
+(data_fil$`Income composition of resources` <- as.vector(scale(data_fil$`Income composition of resources`, center = min(data_fil$`Income composition of resources`)))) #scale=max(data_fil$`Income composition of resources`)-min(data_fil$`Income composition of resources`))))
+
+(data_fil$`percentage expenditure` <- as.vector(scale(data_fil$`percentage expenditure`, center = min(data_fil$`percentage expenditure`)))) #scale=max(data_fil$`percentage expenditure`)-min(data_fil$`percentage expenditure`))))
+
+(data_fil$BMI <- as.vector(scale(data_fil$BMI, center = min(data_fil$BMI)))) #scale=max(data_fil$BMI)-min(data_fil$BMI))))
+
+
+set.seed(97)
+summary(data_fil)
+```
+
+sample 100 rows as training examples and use the rest as test
+we are not doing k-fold validation for this example, but will do that for later examples
+we are doing holdout for this example
+
+```{r}
+sample <- sample(1:nrow(data), 100)
+train <- data[sample, ]
+test <- data[-sample, ]
+
+```
+
+training an ANN using nnet
+arguments for nnet()
+"Species ~ .": the formula that takes the form class ~ var1 + var2 + .... 
+We saw formula of this form before when doing log-linear modeling
+In the formula, if 'class' is a factor, then ann will perform classification. If 'class' is a numerical variable, then the ann will perform regression
+size: number of nodes in the hidden layer
+trace: whether to output the process of the learning
+maxit: max iterations to complete before stoping the training
+the () that inclose everything will print the result (n) on the counsel
+
+```{r}
+set.seed(99)
+n <- nnet(data$`Life expectancy` ~ ., train, size=6, trace=FALSE, maxit=1000)
+````
+
