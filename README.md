@@ -11,7 +11,7 @@ Code and r scripts are created for [Dr. Hong Cui's](https://ischool.arizona.edu/
 [Exercise 5 - Classification](https://kelseygonzalez.github.io/datamining/R-exercise-5.html)  
 [Exercise 6 - Partitioning and Hierarchal Clustering](https://kelseygonzalez.github.io/datamining/R-exercise-6.html)  
 [Extra - Artificial Neural Networks](https://kelseygonzalez.github.io/datamining/)  
-[Extra - Support Vector Machines](https://kelseygonzalez.github.io/datamining/)  
+[Extra - Support Vector Machines](https://kelseygonzalez.github.io/datamining/R-exercise-SVM.html)  
 [Extra - Density Based Clustering](https://kelseygonzalez.github.io/datamining/)  
 
   
