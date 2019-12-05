@@ -226,13 +226,15 @@ classified 2 instances wrong -- overall a pretty good performance
 # [REQUIRED]
 ##1.	Try out SVM on your dataset and report performances using two different sets of parameters.
 ```{r}
-rm(list=ls())
-load("LifeExpectancyData_3.Rdata")
+load("LifeExpectancyData_3.Rdata") 
 data$Status = as.factor(data$Status)
 data$Year = as.factor(data$Year)
 data$Country = as.factor(data$Country)
 
-data <- data %>% filter(Year=="2013") %>% select(-c(Year, Country) %>% drop_na()
+data <- data %>% 
+  filter(Year=="2013") %>% 
+  select(-c(Year, Country)) %>%
+  drop_na()
 
 samples <- sample(1:nrow(data), 0.8*nrow(data))
 train <- data[samples, ]
@@ -323,21 +325,18 @@ extract the best model
 ## 2.	Use Performance Estimates learned last week to find a set of best parameters for your SVM. 
 
 ### performanceEstimation
-```{r}
+
 set.seed(1)
-res <- performanceEstimation(
-  c(PredTask(Status ~ .,data)),
-  c(workflowVariants(learner="svm",
-                     learner.pars=list(cost=c(0.01, 1), kernel=c("linear", "radial")))),
-  EstimationTask(metrics="acc", method=CV(nReps=1, nFolds=3))
-)
-```
+res <- performanceEstimation(c(PredTask(Status ~ .,data)),
+                             c(workflowVariants(learner="svm",
+                                                learner.pars=list(cost=c(0.01, 1)),
+                                                kernel=c("linear", "radial"))),
+                             EstimationTask(metrics="acc", method=CV(nReps=1, nFolds=3))
 
-```{r}
 summary(res)
-```
 
-```{r}
+
+
 res$data.Status
-```
+
 	
