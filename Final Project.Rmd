@@ -44,12 +44,12 @@ ISO3166 <- read.csv(text = (getURL("https://raw.githubusercontent.com/lukes/ISO-
 ISO3166$name <- as.character(ISO3166$name)
 # They use Eswatini instead of Swaziland, so let's update that & other naming mismatches
 ISO3166$name[ISO3166$name == "Eswatini"] <- "Swaziland"
-ISO3166$name[ISO3166$name == "Moldova, Republic of"] <- "Republic of Moldova"
-ISO3166$name[ISO3166$name == "Korea, Republic of"] <- "Republic of Korea"
-ISO3166$name[ISO3166$name == "Korea (Democratic People's Republic of)"] <- "Democratic People's Republic of Korea"
-ISO3166$name[ISO3166$name == "Congo, Democratic Republic of the"] <- "Democratic Republic of the Congo"
-ISO3166$name[ISO3166$name == "North Macedonia"] <- "The former Yugoslav republic of Macedonia"
-ISO3166$name[ISO3166$name == "Tanzania, United Republic of"] <- "United Republic of Tanzania"
+ISO3166$name[ISO3166$name == "Moldova, Republic of"] <- "Rep_Moldova"
+ISO3166$name[ISO3166$name == "Korea, Republic of"] <- "Rep_Korea"
+ISO3166$name[ISO3166$name == "Korea (Democratic People's Republic of)"] <- "Dem_Peoples_Rep_Korea"
+ISO3166$name[ISO3166$name == "Congo, Democratic Republic of the"] <- "Dem_Rep_Congo"
+ISO3166$name[ISO3166$name == "North Macedonia"] <- "Macedonia"
+ISO3166$name[ISO3166$name == "Tanzania, United Republic of"] <- "Tanzania"
 ```
 
 We created a country data frame to make the data join more easily, and then joined them by country("country", "name"), while adding the continent ("region")
@@ -68,6 +68,7 @@ data <- left_join(x = data,
                    by = c("Country" = "Country"))
 ```
 
+Cluster pre-processing??
 ```{r}
 data$Life <- data$`Life expectancy`
 data$Status = as.factor(data$Status)
@@ -82,12 +83,49 @@ data2013 <- data %>% filter(Year=="2013") %>% drop_na()
 
 #Describe Data set
 
-https://designing-ggplots.netlify.com/#49
+https://designing-ggplots.netlify.com/#46
 ```{r}
 load("LifeExpectancyData_3.Rdata")
 
 library(ggrepel)
 
+ten_countries <- 
+  data %>% 
+  filter(Year == 2013) %>% 
+  select(Country) %>% 
+  arrange() %>% 
+  head()
+
+p1 <- data %>%
+  filter(Year == 2013) %>%
+  drop_na() %>% 
+  mutate(label = ifelse(Country %in% ten_countries,Country,"")) %>%
+  ggplot(aes(BMI, `Life expectancy`)) +
+  geom_point(size = 3.5, 
+             alpha = .9,
+             shape = 21, 
+             col = "white", 
+             fill = "#0162B2")
+
+scatter_plot <- p1 + 
+  geom_text_repel(aes(label = label),
+                  size = 4.5,
+                  point.padding = .2,
+                  box.padding = .3,
+                  force = 1,
+                  min.segment.length = 0) +
+  theme_minimal(14) +
+  theme(legend.position = "none",
+        panel.grid.minor = element_blank()) +
+  labs(x = "BMI",
+       y = "life expectancy")
+scatter_plot
+
+# not sure about this one, just experimenting
+
+```
+
+```{r}
 ten_countries <- 
   data %>% 
   filter(Year == 2013) %>% 
@@ -119,7 +157,6 @@ scatter_plot <- p1 +
   labs(x = "log(GDP)",
        y = "life expectancy")
 scatter_plot
-
 
 ```
 

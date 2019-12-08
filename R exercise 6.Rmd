@@ -48,7 +48,7 @@ data_no_cat <- as.data.frame(data_no_cat)
 rownames(data_no_cat) <- data$Country
 ```
 
-First things first, do our data even have a natural clustering tendency?
+First things first, does our data even have a natural clustering tendency?
 the smaller the result, the higher clustering tendency
 ```{r}
 #Hopkins, for numerical data only 
