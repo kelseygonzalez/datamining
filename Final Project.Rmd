@@ -68,7 +68,6 @@ data <- left_join(x = data,
                    by = c("Country" = "Country"))
 ```
 
-Cluster pre-processing??
 ```{r}
 data$Life <- data$`Life expectancy`
 data$Status = as.factor(data$Status)
@@ -84,6 +83,8 @@ data2013 <- data %>% filter(Year=="2013") %>% drop_na()
 #Describe Data set
 
 https://designing-ggplots.netlify.com/#46
+# not sure about these, just experimenting
+
 ```{r}
 load("LifeExpectancyData_3.Rdata")
 
@@ -121,9 +122,43 @@ scatter_plot <- p1 +
        y = "life expectancy")
 scatter_plot
 
-# not sure about this one, just experimenting
-
+ten_countries <- 
+  data %>% 
+  filter(Year == 2013) %>% 
+  select(Country) %>% 
+  arrange() %>% 
+  head()
 ```
+
+```{r}
+p1 <- data %>%
+  filter(Year == 2013) %>%
+  drop_na() %>% 
+  mutate(label = ifelse(Country %in% ten_countries,Country,"")) %>%
+  ggplot(aes(`Adult Mortality`, `Life expectancy`)) +
+  geom_point(size = 3.5, 
+             alpha = .9,
+             shape = 21, 
+             col = "white", 
+             fill = "#0162B2")
+
+scatter_plot <- p1 + 
+  geom_text_repel(aes(label = label),
+                  size = 4.5,
+                  point.padding = .2,
+                  box.padding = .3,
+                  force = 1,
+                  min.segment.length = 0) +
+  theme_minimal(14) +
+  theme(legend.position = "none",
+        panel.grid.minor = element_blank()) +
+  labs(x = "Adult Mortality rate per 1000",
+       y = "life expectancy")
+scatter_plot
+```
+
+
+
 
 ```{r}
 ten_countries <- 
@@ -192,6 +227,10 @@ the smaller the result, the higher clustering tendency
 # Compute Hopkins statistic for iris dataset:n must be no larger than num of samples
 # seed set internally in the function, always give the same result.
 
+install.packages(c("factoextra", "clustertend"))
+library(factoextra)
+library(clustertend)
+
 data_no_cat <- data2013 %>% select(-Country, -Status, -region)
 
 res <- get_clust_tendency(data_no_cat, n=138, graph = TRUE)
@@ -208,10 +247,12 @@ res$H #very small, < 0.5, good clustering tendency
 
 
 ```{r}
-gower_dist <- daisy(data2013[, -1],
+library(cluster)
+gower_dist <- daisy(data2013[, -1], 
                     metric = "gower",
                     type = list(logratio = "GDP", 
                                 logratio = "Population"))
+
 
 # Check attributes to ensure the correct methods are being used (I = interval, N = nominal)
 # Note that despite logratio being called, the type remains coded as "I"
