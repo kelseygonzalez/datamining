@@ -560,30 +560,45 @@ test = data[-train_rows, ]
 
 ```
 
-Classificaiton Tree:
+Decision Tree (using regression):
+
+The automatic cost complexity of the tree shows diminishing returns after 6 terminal nodes (which you can see in the cp, X-val Relative Error plot below the trees).
+
 ```{r}
 m1 <- rpart(
   formula = Life ~ .,
   data = train,
-  cp = 0.01,
+ #cp = 0.01,
   method = "anova"
 )
+
+rpart.plot(m1)
+
 ```
 
-Plot the tree
+Plot the tree that includes the observation number within each node:
 ```{r}
 prp(m1, type = 1, extra = 101, roundint = FALSE)
 ```
 
 #In the plot, y-axis is cross validation error, lower x-axis is cost complexity (α or cp) value, upper x-axis is the number of terminal nodes (tree size) 
 
-We find diminishing returns after 6 terminal nodes at a clost complexity of .012.
+We find diminishing returns after 6 terminal (leaf) nodes at a cost complexity parameter (cp) of .012.
 You may also notice the dashed line which goes through the terminal node, tree size= 5.
+
+
 ```{r}
 plotcp(m1)
 ```
 
-This clustering tree has a control for cross validation X-val, and Cost complexity where we now have a vertical line at 8, cutting the peak height.
+This clustering tree has a control for cross validation X-val, and Cost complexity parameter (cp) where we now have a vertical line at 6, in relation to our leaf nodes in the decision tree.
+
+The vertical reference line is drawn at the complexity parameter that has the lowest cross validated average squared error of the prediction, and the corresponding size for that complexity parameter is selected as the maximum leaf nodes of the tree.
+
+
+
+To show the value of a 6 leaf node tree, we can see the plot below to review the diminishing returns as the tree continues to grow.
+
 ```{r}
 m2 <- rpart(
    formula = Life ~ .,
@@ -593,21 +608,43 @@ m2 <- rpart(
  )
  
 plotcp(m2) + 
-abline(v = 8, lty = "dashed")
+abline(v = 7, lty = "dashed")
+
+#rpart.plot(m2)
 
 ```
 
-Now we can test different models
+
+Now we can review combinations of determining factors with the results from our regression trees by using different modeling examples.
+
+We use a minimum spit of 5 and a maximum depth of 6 to match our splits and provide room for our terminal nodes.
 ```{r}
+m3 <- rpart(
+  formula = Life ~ .,
+  data = train,
+  method = "anova",
+  control = list(minsplit = 5, maxdepth = 6, xval = 10)
+)
+
+m3$cptable
+```
+
+Then we search the grid, prividing room for our splits and leaf nodes in our ranges. The results show 91 different combinations, requiring 91 different models.
+```{r}
+
 hyper_grid <- expand.grid(
-   minsplit = seq(5, 20, 1),
-   maxdepth = seq(8, 15, 1)
+   minsplit = seq(3, 15, 1),
+   maxdepth = seq(6, 12, 1)
  )
  head(hyper_grid)
+ tail(hyper_grid)
+ 
+ nrow(hyper_grid)
 ```
 
 
-###Look Up what this means!!
+Now we can automate the modeling and save each model into its own item list.
+
 ```{r}
  models <- list()
  for (i in 1:nrow(hyper_grid)) {
@@ -625,6 +662,11 @@ hyper_grid <- expand.grid(
    )
  }
 
+```
+
+create a function to extract the minimum error associated with the optimal cost complexity value for each model. The error shows a .327 vs .328 and shows the maxdepth of diminishing leaf nodes does fall off after 6. 
+```{r}
+
 get_cp <- function(x) {
    min    <- which.min(x$cptable[, "xerror"])
    cp <- x$cptable[min, "CP"] 
@@ -638,7 +680,7 @@ hyper_grid %>%
    mutate(cp    = purrr::map_dbl(models, get_cp),
           error = purrr::map_dbl(models, get_min_error)) %>%
    arrange(error) %>%
-   top_n(-5, wt = error)
+   top_n(-6, wt = error)
 ```
 
 ```{r}
@@ -653,23 +695,60 @@ prp(optimal_tree, type=1, extra=101, roundint = FALSE)
  # pred
 ```
 
+
+Variance between life expectancy for different models is 5.4
 ```{r}
   RMSE(pred = pred, obs = test$Life)
 ```
+
+
 Some interesting rules from the decision tree
 ```{r}
 rpart.rules(optimal_tree, cover = TRUE)
 ```
 
-Bagging: learn trees on boostrapped samples using all variables
+
+Bagging: learn trees on boostrapped samples using aggregated variables. Here we reduced error from 5.4 to 5.19.
 ```{r}
 rfm <- ipred::bagging(Life ~ ., train, nbag=750)
 rfpred <- predict(rfm, test)
-#error reduced from 39145 to 34536
 RMSE(rfpred, test$Life)
 
 ```
-boosting:iteratively add new models to the ensemble, each model tries to overcome the errors made by the previous model
+
+Let's see if the Out-of-bag sample changes anything, OOB sample is 33% of th training data to estimate the model's accuracy and create a natural cross-validation process. Because the error is higher, we won't use the OOB sample.
+```{r}
+set.seed(123)
+
+baga <- bagging(formula = Life ~., data = train, coob = TRUE)
+
+baga
+
+```
+
+ The default bagging is 25 boostrap samples and trees, but we changed our metrics to review a broader scope with more samples. Here we can see that of the 100 tree samples used, the error stableizes around 81 tree samples are used.
+```{r}
+ntree <- 10:100
+rmse <- vector(mode = "numeric", length = length(ntree))
+for (i in seq_along(ntree)) {
+  set.seed(123)
+  
+  model <- bagging(
+    formula = Life ~.,
+    data = train,
+    coob = TRUE,
+    nbagg = ntree[i]
+  )
+  rmse[i] <-model$err
+}
+
+plot(ntree, rmse, type = "l", lwd = 2) +
+abline(v=81, col = "blue", lty = "dashed")
+
+```
+
+
+Boosting:iteratively adds new models to the ensemble, each model tries to overcome the errors made by the previous model
 
 ```{r}
 ct <- boosting(Life ~ ., train, mfinal=50)
