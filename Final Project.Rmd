@@ -726,7 +726,7 @@ baga
 
 ```
 
- The default bagging is 25 boostrap samples and trees, but we changed our metrics to review a broader scope with more samples. Here we can see that of the 100 tree samples used, the error stableizes around 81 tree samples are used.
+ The default bagging is 25 boostrap samples and trees, but we changed our metrics to review a broader scope with more samples. Here we can see that of the 100 tree samples used, the error stableizes when around 68 tree samples are used.
 ```{r}
 ntree <- 10:100
 rmse <- vector(mode = "numeric", length = length(ntree))
@@ -743,15 +743,45 @@ for (i in seq_along(ntree)) {
 }
 
 plot(ntree, rmse, type = "l", lwd = 2) +
-abline(v=81, col = "blue", lty = "dashed")
+abline(v=68, col = "blue", lty = "dashed")
+
+```
+We can compare this result to our hyper_grid results that show 91 models can be used to review decision tree combinations.
+
+
+We can validate our results once more with CARET.
+```{r}
+ctrl <- trainControl(method = "cv",  number = 10) 
+
+# CV bagged model
+bagged_cv <- train(
+  Life ~ .,
+  data = train,
+  method = "treebag",
+  trControl = ctrl,
+  importance = TRUE
+  )
+bagged_cv
 
 ```
 
+We can look at the variables used in the models
+```{r}
+plot(varImp(bagged_cv), 13)  
+
+```
 
 Boosting:iteratively adds new models to the ensemble, each model tries to overcome the errors made by the previous model
 
 ```{r}
-ct <- boosting(Life ~ ., train, mfinal=50)
+
+#train$Life <- as.factor(train$Life)
+ct <- boosting(formula = Life ~ ., 
+               data = train, 
+               boos = TRUE,
+               mfinal=10,
+               control = (minsplit = 0))
+
 ps2 <- predict(ct, test) 
 ps2$confusion
 ps2$error
@@ -760,6 +790,7 @@ ps2$error
 #build model based on a forest of 750 trees and predict test data
 
 ```{r}
+train$Life <- as.numeric(train$Life)
 rfm <- randomForest(Life ~ ., train, ntree=750)
 
 rfpred <- predict(rfm, test)
