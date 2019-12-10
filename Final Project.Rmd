@@ -23,6 +23,11 @@ library(ISLR)         # contains example data set "Khan"
 library(RColorBrewer) # customized coloring of plots
 library(performanceEstimation) # for performance estimation of svm
 library(RCurl) # for performance estimation of svm
+library(factoextra) #for hopkins statistic
+library(clustertend) #for hopkins statistic
+library(cluster) # for gower similarity, pam, and diana (a divisive hierarchical method). clara() is also included, which is basically pam by sampling
+library(Rtsne) # for t-SNE plot
+
 
 ```
 
@@ -43,13 +48,12 @@ Then we aquire data to include continent values and make our cuboid navigation e
 ISO3166 <- read.csv(text = (getURL("https://raw.githubusercontent.com/lukes/ISO-3166-Countries-with-Regional-Codes/master/all/all.csv")))
 ISO3166$name <- as.character(ISO3166$name)
 # They use Eswatini instead of Swaziland, so let's update that & other naming mismatches
-ISO3166$name[ISO3166$name == "Eswatini"] <- "Swaziland"
-ISO3166$name[ISO3166$name == "Moldova, Republic of"] <- "Rep_Moldova"
-ISO3166$name[ISO3166$name == "Korea, Republic of"] <- "Rep_Korea"
-ISO3166$name[ISO3166$name == "Korea (Democratic People's Republic of)"] <- "Dem_Peoples_Rep_Korea"
-ISO3166$name[ISO3166$name == "Congo, Democratic Republic of the"] <- "Dem_Rep_Congo"
-ISO3166$name[ISO3166$name == "North Macedonia"] <- "Macedonia"
-ISO3166$name[ISO3166$name == "Tanzania, United Republic of"] <- "Tanzania"
+ISO3166$name[ISO3166$name == "Moldova, Republic of"] <- "Republic of Moldova"
+ISO3166$name[ISO3166$name == "Korea, Republic of"] <- "Republic of Korea"
+ISO3166$name[ISO3166$name == "Korea (Democratic People's Republic of)"] <- "Democratic People's Republic of Korea"
+ISO3166$name[ISO3166$name == "Congo, Democratic Republic of the"] <- "Democratic Republic of the Congo"
+ISO3166$name[ISO3166$name == "North Macedonia"] <- "The former Yugoslav republic of Macedonia"
+ISO3166$name[ISO3166$name == "Tanzania, United Republic of"] <- "United Republic of Tanzania"
 ```
 
 We created a country data frame to make the data join more easily, and then joined them by country("country", "name"), while adding the continent ("region")
@@ -83,7 +87,8 @@ data2013 <- data %>% filter(Year=="2013") %>% drop_na()
 #Describe Data set
 
 https://designing-ggplots.netlify.com/#46
-# not sure about these, just experimenting
+
+# not sure about the, just experimenting
 
 ```{r}
 load("LifeExpectancyData_3.Rdata")
@@ -196,6 +201,7 @@ scatter_plot
 ```
 
 
+=======
 
 ```{r, echo=FALSE}
 #http://rpubs.com/nicholas_dirienzo/523778
@@ -203,13 +209,21 @@ require(reshape2)
 
 data_melted <- data %>%
   filter(Year == 2013) %>% 
-  select(-Country, -Status, -region) # remove the character columns we don't need
+  drop_na() %>% 
+  select(-Year, -Country, -Status, -region) %>% 
+  scale() #make all the variables on the same scale
+
+summary(data_melted)
+```
+
+````{r}
 
 data_melted <- melt(as.data.frame(data_melted))
 
 ggplot(data_melted,
        aes(x = value)) +
   geom_histogram() +
+  scale_x_continuous(name="Distribution", limits=c(-2, 2)) +
   facet_wrap(~variable)
 
 ```
@@ -217,11 +231,14 @@ ggplot(data_melted,
 
 
 #Descriptive Analyses
-## ? Clustering 
+## Pam Clustering 
 
 
 First things first, do our data even have a natural clustering tendency?
-the smaller the result, the higher clustering tendency
+the larger the result, the higher clustering tendency
+
+The hopkins statistic on our read dataset shows about a .79 clustering tendency, where in some cases can resemble 90% confidence level.
+source: https://www.datanovia.com/en/lessons/assessing-clustering-tendency/
 ```{r}
 #Hopkins, for numerical data only 
 # Compute Hopkins statistic for iris dataset:n must be no larger than num of samples
@@ -232,18 +249,54 @@ library(factoextra)
 library(clustertend)
 
 data_no_cat <- data2013 %>% select(-Country, -Status, -region)
+data_no_cat <- data2013 %>% select(-Country, -Status, -region, -Year) %>% as.matrix()
+rownames(data_no_cat) <- data2013$Country
 
-res <- get_clust_tendency(data_no_cat, n=138, graph = TRUE)
+res <- get_clust_tendency(data_no_cat, n=137, graph = TRUE)
 res$hopkins_stat
-res$plot
-
-set.seed(1)
-res <- hopkins(data_no_cat, n = 138)
-res$H #very small, < 0.5, good clustering tendency
 ```
 
+```{r}
+res$plot
+```
+
+The clustering tendency of our random dataset is around .3 when the length between neighbors is 2 or .5, when the length is 1 there's a distancy of .57 - This means the random dataset is uniformly distributed and is not clusterable.
+```{r}
+df <- data[, -5]
+
+random_df <- apply(df, 2, 
+                function(x){runif(length(2), min(1), (max(4)))})
+random_df <- as.data.frame(random_df)
+# Standardize the data sets
+
+#df <- scale(df)
+random_df <- scale(random_df)
 
 
+res <- get_clust_tendency(random_df, n = nrow(random_df)-1,
+                          graph = FALSE)
+res$hopkins_stat
+
+```
+
+```{r}
+res$plot
+
+```
+
+Our Next try shows the clustering tendency at .19 which is very small; < 0.5, no clustering tendency
+```{r}
+set.seed(78)
+res <- hopkins(data_no_cat, n = 137)
+res$H 
+```
+
+The same goes for the random dataframe
+```{r}
+resran <- get_clust_tendency(random_df, n = nrow(random_df)-1,
+                          graph = FALSE)
+res$hopkins_stat
+```
 
 
 ```{r}
@@ -256,7 +309,6 @@ gower_dist <- daisy(data2013[, -1],
 
 # Check attributes to ensure the correct methods are being used (I = interval, N = nominal)
 # Note that despite logratio being called, the type remains coded as "I"
-summary(gower_dist)
 
 # cleaning it up
 gower_mat <- as.matrix(gower_dist)
@@ -265,8 +317,7 @@ rownames(gower_mat) <- colnames(gower_mat) <- data2013$Country
 
 ```
 
-Calculate Silhouette width for 2 to 10 clusters using PAM
-
+Calculate Silhouette width for 2 to 10 clusters using PAM - The top cluster options are 2 and 3
 ```{r}
 sil <- c(NA)
 for(i in 2:10){
@@ -280,15 +331,31 @@ ylab = "Silhouette Width",
 lines(1:10, sil))
 ```
 
+review 2 clusters
 ```{r}
-pam_fit <- pam(gower_dist, diss = TRUE, k = 4)
+pam_fit <- pam(gower_dist, diss = TRUE, k = 2)
+
 # add cluster labels to the data. We will use result1 later
 data_clean <- data.frame(data2013, pam_fit$cluster)
+
 # show clustering results by country
 result1 <- data_clean %>% select(Country,pam_fit.cluster)
 clusplot(pam_fit)
 
 ```
+
+Review 3 clusters
+```{r}
+pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
+
+# add cluster labels to the data. We will use result1 later
+data_clean <- data.frame(data2013, pam_fit$cluster)
+
+# show clustering results by country
+result1 <- data_clean %>% select(Country,pam_fit.cluster)
+clusplot(pam_fit)
+```
+
 
 group_by cluster and then compute the summary data (means, median, etc) for each cluster
 ```{r}
@@ -300,30 +367,112 @@ data_results <- data_clean %>%
 
 data_results$the_summary
 ```
-The results suggest
+The results suggest:
 
-_Cluster 1_:Developing countries in Asia with a LE of 68 with a mean GDP of 1,283.  
-_Cluster 2_: Developing countries in Europe with a mean LE of 76 with a mean GDP of 9,872.  
-_Cluster 3_: Developing countries in Africa with a mean LE of 61 with a mean GDP of 1,962.   
-_Cluster 4_: Developing countries in the Americas with a mean LE of 74 with a mean GDP of 7,347.  
-_Cluster 5_: Developing countries in Asia with a mean LE of 72 with a mean GDP of 5,052.  
-_Cluster 6_: Developed countries in Europe and Asia with a mean LE of 80 with a mean GDP of 20,710.  
+Cluster 1 has all developing countries (43) with a median Life Expectancy of around 62 years, mean population of 16,790,712 (median=2,117,361), an average of 10 years of schooling and is mainly comprised of countries in Africa, 37 with 4 Asian countries included .
+
+Cluster 2 has all developing countries (64) with a median Life Expectancy of around 73 years, a mean population of 13,616,677 (median=1,149,462), an average of 13 years of schooling and is mainly comprised of countries in Asia, 25 and the Americas, 21, with 5 African countries also included.
+
+Cluster 3 has mostly developed countries (26) and 5 developing countries, with a median Life Expectancy of around 81 years, a mean population of 4,663,832  (median=1,684,432). Cluster 3 has an average of 16 years of schooling and is mainly comprised of countries in Europe, 27, Asia 2, Oceania, 1 and the Americas 1.
+
+
 
 One way to visualize many variables in a lower dimensional space is with t-distributed stochastic neighborhood embedding, or t-SNE. 
 ```{r}
 tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
 
-tsne_data <- tsne_obj$Y %>%
+tsne_data_pam <- tsne_obj$Y %>%
   data.frame() %>% 
   setNames(c("X", "Y")) %>%
   mutate(cluster = factor(pam_fit$clustering),
          name = data_clean$Country)
 
-ggplot(aes(x = X, y = Y), data = tsne_data) +
+ggplot(aes(x = X, y = Y), data = tsne_data_pam) +
   geom_point(aes(color = cluster)) + 
-  geom_text(data=subset(tsne_data[pam_fit$medoids, ]), # add names of centroids in 
+  geom_text(data=subset(tsne_data_pam[pam_fit$medoids, ]), # add names of centroids in
             aes(X,Y,label=name))
 ```
+clearly pam isn't the ideal clustering algorithm here. 
+
+## Hierarchical Clustering 
+
+We can use hierarchical clustering to show where the best fit clusters might be.
+```{r}
+h <- hclust(d = as.dist(gower_dist), method="complete")
+plot(h, cex = 0.3, hang = -1, main="Hierarchal Cluster of Predicted Probabilities") +
+  abline(h=quantile(gower_dist, .90), col="blue")
+```
+
+```{r}
+tsne_data_hc <- tsne_obj$Y %>%
+  data.frame() %>% 
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(cutree(h, h=quantile(gower_dist, .90))),
+         name = data_clean$Country)
+
+set.seed(5)
+labels <- tsne_data_hc %>%
+    group_by(cluster) %>%
+    sample_n(.,1) 
+
+tsne_data_hc <- tsne_data_hc %>% 
+  mutate(label = ifelse(name %in% labels$name, as.character(name), ""))
+
+ggplot(aes(x = X, y = Y), data = tsne_data_hc) +
+  geom_point(aes(color = cluster)) + 
+  geom_text(aes(X,Y,label=label))
+
+```
+
+## Density Clustering with Optics
+
+
+```{r}
+#18 dimensions, so set k = 19
+
+library(dbscan)
+kNNdistplot(gower_dist, k=19) +
+  abline(h=0.16, col='red', lty=2)
+
+res_col <- optics(gower_dist, eps=10, minPts = 7)
+
+plot(res_col)
+```
+
+```{r}
+#5 clusters, 21 noise points
+res_col_d <- extractDBSCAN(res_col, eps_cl=0.0915)
+plot(res_col_d)
+```
+
+```{r}
+tsne_data_den_d<- tsne_obj$Y %>%
+  data.frame() %>% 
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(res_col_d$cluster),
+         name = data_clean$Country)
+
+set.seed(5)
+labels <- tsne_data_den_d %>% 
+    filter(cluster != "0") %>% 
+    group_by(cluster) %>%
+    sample_n(.,1) 
+
+tsne_data_den_d <- tsne_data_den_d %>% 
+  mutate(label = ifelse(name %in% labels$name, as.character(name), ""))
+
+ggplot(aes(x = X, y = Y), data = tsne_data_den_d) +
+  geom_point(aes(color = cluster)) + 
+  geom_text(aes(X,Y,label=label)) +
+  scale_color_manual(values=c("#999999",
+                              "#F8766D",
+                              "#00BCD8",
+                              "#E76BF3",
+                              "#6BB100",
+                              "#619CFF"))
+```
+
 
 #Predictive Tasks
+
 ##Decision Trees
