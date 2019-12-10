@@ -710,7 +710,7 @@ rpart.rules(optimal_tree, cover = TRUE)
 
 Bagging: learn trees on boostrapped samples using aggregated variables. Here we reduced error from 5.4 to 5.19.
 ```{r}
-rfm <- ipred::bagging(Life ~ ., train, nbag=750)
+rfm <- ipred::bagging(Life ~ ., train, nbag=150)
 rfpred <- predict(rfm, test)
 RMSE(rfpred, test$Life)
 
@@ -765,22 +765,31 @@ bagged_cv
 
 ```
 
-We can look at the variables used in the models
+We can look at the variables used in the models and reduce our error to 5.23
 ```{r}
-plot(varImp(bagged_cv), 13)  
+plot(varImp(bagged_cv), 13)
+
+predct <- predict(bagged_cv, test)
+RMSE(predct, test$Life)
 
 ```
 
 Boosting:iteratively adds new models to the ensemble, each model tries to overcome the errors made by the previous model
 
 ```{r}
-
+library(adabag)
 #train$Life <- as.factor(train$Life)
 ct <- boosting(formula = Life ~ ., 
                data = train, 
                boos = TRUE,
                mfinal=10,
-               control = (minsplit = 0))
+               control = rpart.control(cp = -1))
+
+ct1 <- boosting(formula = Life ~ ., 
+               data = train, 
+               boos = TRUE,
+               mfinal=10,
+               control = rpart.control(minsplit = 0))
 
 ps2 <- predict(ct, test) 
 ps2$confusion
