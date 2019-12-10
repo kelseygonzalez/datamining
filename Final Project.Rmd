@@ -476,3 +476,225 @@ ggplot(aes(x = X, y = Y), data = tsne_data_den_d) +
 #Predictive Tasks
 
 ##Decision Trees
+
+```{r}
+library(tidyverse)
+library(rpart)
+library(rpart.plot)
+library(DMwR2)
+library(rsample)
+library(adabag)
+library(ipred)
+library(randomForest)
+library(gbm)
+library(performanceEstimation)
+library(e1071)
+library(nnet)
+options(scipen = 999)
+```
+
+partition the data 
+```{r}
+data$Country = as.factor(data$Country)
+data$Year = as.numeric(data$Year)
+
+
+data$Life <- data$`Life expectancy`
+data$infantmort <- cut(data$`infant deaths`, 
+                              breaks = 3, 
+                              labels=c('low_infant', 'middle_infant', 'high_infant'))
+data$expenditure <- cut(data$`Total expenditure`, 
+                              breaks = 3, 
+                              labels=c('low_expenditure','med_expenditure', 'high_expenditure'))
+data$pop <- cut(data$Population, 
+                              breaks = 3, 
+                              labels=c('low_pop','med_pop', 'high_pop'))
+data$bmi <- cut(data$BMI, 
+                              breaks = 3, 
+                              labels=c('low_BMI','med_BMI', 'high_BMI'))  
+data$gdp <- cut(data$GDP, 
+                              breaks = 3, 
+                              labels=c('low_GDP','med_GDP', 'high_GDP'))  
+data$alcohol <- cut(data$Alcohol, 
+                              breaks = 3, 
+                              labels=c('low_alc','med_alc', 'high_alc'))  
+summary(data$Year)
+data$Year <- cut(data$Year, 
+                              breaks = c(-Inf,2007, Inf),
+                              labels=c("2000", "2007"))
+summary(data$Year)
+# data$Year <- cut(data$Year, breaks=c(-Inf, 2007, Inf), labels = c('2000-2007', '2007-2015'))  
+
+drops <- c("Alcohol",
+           "percentage expenditure",
+           "BMI",
+           "GDP",
+           "Diphtheria",
+           "Life expectancy",
+           "Measles",
+           "infant deaths",
+           "Total expenditure", 
+           "thinness  1-19 years",  
+           "thinness 5-9 years", 
+           "Population", 
+           "HIV/AIDS", 
+           "Polio",
+           "under-five deaths",
+           "Adult Mortality",
+           "Income composition of resources",
+           "Schooling",
+           "Country")
+
+data <- data[ , !(names(data) %in% drops)]
+data <- data %>% drop_na
+
+```
+
+Decision Tree with one ensemble method
+  Training and Testing Data
+  Divide the data into 75% training, 25% test
+```{r}
+train_rows = sample(1:nrow(data), 0.75*nrow(data))
+train = data[train_rows, ]
+test = data[-train_rows, ]
+
+```
+
+Classificaiton Tree:
+```{r}
+m1 <- rpart(
+  formula = Life ~ .,
+  data = train,
+  cp = 0.01,
+  method = "anova"
+)
+```
+
+Plot the tree
+```{r}
+prp(m1, type = 1, extra = 101, roundint = FALSE)
+```
+
+#In the plot, y-axis is cross validation error, lower x-axis is cost complexity (α or cp) value, upper x-axis is the number of terminal nodes (tree size) 
+
+We find diminishing returns after 6 terminal nodes at a clost complexity of .012.
+You may also notice the dashed line which goes through the terminal node, tree size= 5.
+```{r}
+plotcp(m1)
+```
+
+This clustering tree has a control for cross validation X-val, and Cost complexity where we now have a vertical line at 8, cutting the peak height.
+```{r}
+m2 <- rpart(
+   formula = Life ~ .,
+   data    = train,
+   method  = "anova", 
+   control = list(cp = 0, xval = 10)
+ )
+ 
+plotcp(m2) + 
+abline(v = 8, lty = "dashed")
+
+```
+
+Now we can test different models
+```{r}
+hyper_grid <- expand.grid(
+   minsplit = seq(5, 20, 1),
+   maxdepth = seq(8, 15, 1)
+ )
+ head(hyper_grid)
+```
+
+
+###Look Up what this means!!
+```{r}
+ models <- list()
+ for (i in 1:nrow(hyper_grid)) {
+   
+   # get minsplit, maxdepth values at row i
+   minsplit <- hyper_grid$minsplit[i]
+   maxdepth <- hyper_grid$maxdepth[i]
+   
+   # train a model and store in the list
+   models[[i]] <- rpart(
+     formula = Life ~ .,
+     data    = train,
+    method  = "anova",
+    control = list(minsplit = minsplit, maxdepth = maxdepth)
+   )
+ }
+
+get_cp <- function(x) {
+   min    <- which.min(x$cptable[, "xerror"])
+   cp <- x$cptable[min, "CP"] 
+ }
+
+get_min_error <- function(x) {
+  min    <- which.min(x$cptable[, "xerror"])
+  xerror <- x$cptable[min, "xerror"] 
+}
+hyper_grid %>%
+   mutate(cp    = purrr::map_dbl(models, get_cp),
+          error = purrr::map_dbl(models, get_min_error)) %>%
+   arrange(error) %>%
+   top_n(-5, wt = error)
+```
+
+```{r}
+optimal_tree <- rpart(
+   formula = Life ~ .,
+   data    = train,
+   method  = "anova",
+   control = list(minsplit = 10, maxdepth = 15, cp = 0.01)
+ )
+prp(optimal_tree, type=1, extra=101, roundint = FALSE)
+ pred <- predict(optimal_tree, newdata = test)
+ # pred
+```
+
+```{r}
+  RMSE(pred = pred, obs = test$Life)
+```
+Some interesting rules from the decision tree
+```{r}
+rpart.rules(optimal_tree, cover = TRUE)
+```
+
+Bagging: learn trees on boostrapped samples using all variables
+```{r}
+rfm <- ipred::bagging(Life ~ ., train, nbag=750)
+rfpred <- predict(rfm, test)
+#error reduced from 39145 to 34536
+RMSE(rfpred, test$Life)
+
+```
+boosting:iteratively add new models to the ensemble, each model tries to overcome the errors made by the previous model
+
+```{r}
+ct <- boosting(Life ~ ., train, mfinal=50)
+ps2 <- predict(ct, test) 
+ps2$confusion
+ps2$error
+```
+
+#build model based on a forest of 750 trees and predict test data
+
+```{r}
+rfm <- randomForest(Life ~ ., train, ntree=750)
+
+rfpred <- predict(rfm, test)
+
+RMSE(rfpred, test$Life)
+
+
+```
+
+
+Another algorithm: Gradient boosting: classification and regression. like AdaBoost, but use gradient descent to address the current errors. Can overfit, so using cross-validation is very important (cv.folds)
+
+```{r}
+rfm <- gbm(Life ~ ., data=train, n.trees=150, cv.folds=3)
+rfpred <- predict(rfm, test, n.trees=150)
+RMSE(rfpred, test$Life)
+```
