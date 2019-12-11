@@ -118,9 +118,7 @@ summary(dataavg)
 #Describe Data set
 
 
-<<<<<<< HEAD
 # not sure about these, just experimenting
-=======
 ```{r, echo=FALSE}
 #http://rpubs.com/nicholas_dirienzo/523778
 require(reshape2)
@@ -130,7 +128,6 @@ data_melted <- dataavg %>%
   scale() #make all the variables on the same scale
 
 data_melted <- melt(as.data.frame(data_melted))
->>>>>>> 57a969c2cd24d3e03446c6c7b53667970b7289d7
 
 ggplot(data_melted,
        aes(x = value)) +
@@ -140,10 +137,10 @@ ggplot(data_melted,
 ```
 
 it looks like we need to log:
-infant deaths  
-under-fives deaths  
-GDP  
-Population  
+-infant deaths  
+-under-fives deaths  
+-GDP  
+-Population  
 
 
 ```{r, echo=FALSE}
@@ -302,10 +299,8 @@ dataavg %>%
        y = "life expectancy")+
   geom_smooth()
 
-<<<<<<< HEAD
-=======
+
 ```
->>>>>>> 57a969c2cd24d3e03446c6c7b53667970b7289d7
 
 
 ```{r, echo=FALSE, message = FALSE}
@@ -335,7 +330,6 @@ dataavg %>%
 ```
 
 
-=======
 
 
 
@@ -369,45 +363,15 @@ res$hopkins_stat
 res$plot
 ```
 
-The clustering tendency of our random dataset is around .3 when the length between neighbors is 2 or .5, when the length is 1 there's a distancy of .57 - This means the random dataset is uniformly distributed and is not clusterable.
-```{r}
-df <- data[, -5]
 
-random_df <- apply(df, 2, 
-                function(x){runif(length(2), min(1), (max(4)))})
-random_df <- as.data.frame(random_df)
-# Standardize the data sets
-
-#df <- scale(df)
-random_df <- scale(random_df)
-
-
-res <- get_clust_tendency(random_df, n = nrow(random_df)-1,
-                          graph = FALSE)
-res$hopkins_stat
-
-```
-
-```{r}
-res$plot
-
-```
-
-Our Next try shows the clustering tendency at .19 which is very small; < 0.5, no clustering tendency
+Our Next try shows the clustering tendency at .25 which is very small; < 0.5, no clustering tendency
 ```{r}
 set.seed(78)
 res <- hopkins(data_no_cat, n = 137)
 res$H 
 ```
 
-The same goes for the random dataframe
-```{r}
-resran <- get_clust_tendency(random_df, n = nrow(random_df)-1,
-                          graph = FALSE)
-res$hopkins_stat
-```
-
-
+Calculate distance between attributes using gower.
 ```{r}
 gower_dist <- daisy(dataavg[, -1], 
                     metric = "gower")
@@ -419,7 +383,6 @@ gower_dist <- daisy(dataavg[, -1],
 # cleaning it up
 gower_mat <- as.matrix(gower_dist)
 rownames(gower_mat) <- colnames(gower_mat) <- dataavg$Country
-
 
 ```
 
@@ -475,11 +438,11 @@ data_results$the_summary
 ```
 The results suggest:
 
-Cluster 1 has all developing countries (43) with a median Life Expectancy of around 62 years, mean population of 16,790,712 (median=2,117,361), an average of 10 years of schooling and is mainly comprised of countries in Africa, 37 with 4 Asian countries included .
+Cluster 1 has all developing countries (53) with a median Life Expectancy of around 58 years, mean logged population of 15.5 (~15M) people, an average of about 9 years of schooling and is mainly comprised of 38 countries in Africa, 13 in Asian, 1 in the Americas, and 1 in Oceana.
 
-Cluster 2 has all developing countries (64) with a median Life Expectancy of around 73 years, a mean population of 13,616,677 (median=1,149,462), an average of 13 years of schooling and is mainly comprised of countries in Asia, 25 and the Americas, 21, with 5 African countries also included.
+Cluster 2 has all developing countries (55) with a median Life Expectancy of around 73 years, a mean logged population of 14.09 (~14M) people, an average of about 12.5 years of schooling and is mainly comprised of22 countries in the Americas, 17 in Asia, 6 in Oceana, 5 in Africa, and 5 in Europe.
 
-Cluster 3 has mostly developed countries (26) and 5 developing countries, with a median Life Expectancy of around 81 years, a mean population of 4,663,832  (median=1,684,432). Cluster 3 has an average of 16 years of schooling and is mainly comprised of countries in Europe, 27, Asia 2, Oceania, 1 and the Americas 1.
+Cluster 3 has mostly developed countries (26) and 6 developing countries, with a median Life Expectancy of around 80 years, a mean logged population of 14.87 people (~ 14M), an average of almost 16 years of schooling and is mainly comprised of countries in Europe, 29, and Oceania, 1.
 
 
 
@@ -516,7 +479,7 @@ tsne_data_hc <- tsne_obj$Y %>%
   mutate(cluster = factor(cutree(h, h=quantile(gower_dist, .75))),
          name = data_clean$Country)
 
-set.seed(5)
+set.seed(8)
 labels <- tsne_data_hc %>%
     group_by(cluster) %>%
     sample_n(.,1) 
@@ -544,8 +507,9 @@ res_col <- optics(gower_dist, eps=10, minPts = 7)
 plot(res_col)
 ```
 
+Density clustering with DBSCAN
 ```{r}
-#5 clusters, 21 noise points
+#4 clusters
 res_col_d <- extractDBSCAN(res_col, eps_cl=0.117)
 plot(res_col_d)
 ```
@@ -576,7 +540,10 @@ ggplot(aes(x = X, y = Y), data = tsne_data_den_d) +
                               "#6BB100",
                               "#619CFF"))
 ```
-which countries are outliers? 
+
+The values are all over the place, making sense why these are "outliers" according to optical clustering. 
+
+30 countries are outliers, but which?
 
 ```{r}
 tsne_data_den_d %>% 
@@ -606,13 +573,12 @@ test = dataavg[-train_rows, ]
 
 Decision Tree (using regression):
 
-The automatic cost complexity of the tree shows diminishing returns after 6 terminal nodes (which you can see in the cp, X-val Relative Error plot below the trees).
-
+The automatic cost complexity of the tree shows diminishing returns after 6 terminal (leaf) nodes.
 ```{r}
 m1 <- rpart(
   formula = Life ~ .,
   data = train,
- #cp = 0.01,
+ cp = 0.01,
   method = "anova"
 )
 
@@ -627,21 +593,19 @@ prp(m1, type = 1, extra = 101, roundint = FALSE)
 
 #In the plot, y-axis is cross validation error, lower x-axis is cost complexity (α or cp) value, upper x-axis is the number of terminal nodes (tree size) 
 
-We find diminishing returns after 6 terminal (leaf) nodes at a cost complexity parameter (cp) of .012.
-You may also notice the dashed line which goes through the terminal node, tree size= 5.
+We find diminishing returns after 6 terminal (leaf) nodes at a cost complexity parameter (cp).
+You may also notice the dashed line which goes through the terminal node, tree size= 4.
 
 
 ```{r}
 plotcp(m1)
 ```
 
-This clustering tree has a control for cross validation X-val, and Cost complexity parameter (cp) where we now have a vertical line at 6, in relation to our leaf nodes in the decision tree.
+This clustering tree has a control for cross validation X-val, and Cost complexity parameter (cp) where we now have a vertical line at 6, in relation to our leaf nodes in the decision tree. Shown below.
 
-The vertical reference line is drawn at the complexity parameter that has the lowest cross validated average squared error of the prediction, and the corresponding size for that complexity parameter is selected as the maximum leaf nodes of the tree.
+The vertical reference line is drawn at the complexity parameter that has the lowest cross validated average squared error of the prediction, and the corresponding size for that complexity parameter is selected as the maximum nodes of the tree.
 
-
-
-To show the value of a 6 leaf node tree, we can see the plot below to review the diminishing returns as the tree continues to grow.
+To show the value of a 4 maximum node tree, we can see the plot below to review the diminishing returns as the tree continues to grow.
 
 ```{r}
 m2 <- rpart(
@@ -652,7 +616,7 @@ m2 <- rpart(
  )
  
 plotcp(m2) + 
-abline(v = 7, lty = "dashed")
+abline(v = 4, lty = "dashed")
 
 #rpart.plot(m2)
 
@@ -660,14 +624,13 @@ abline(v = 7, lty = "dashed")
 
 
 Now we can review combinations of determining factors with the results from our regression trees by using different modeling examples.
-
-We use a minimum spit of 5 and a maximum depth of 6 to match our splits and provide room for our terminal nodes.
+We use a minimum split of 4 and a maximum depth of 6 to match our splits and provide room for our terminal nodes.
 ```{r}
 m3 <- rpart(
   formula = Life ~ .,
   data = train,
   method = "anova",
-  control = list(minsplit = 5, maxdepth = 6, xval = 10)
+  control = list(minsplit = 4, maxdepth = 6, xval = 10)
 )
 
 m3$cptable
@@ -708,7 +671,9 @@ Now we can automate the modeling and save each model into its own item list.
 
 ```
 
-create a function to extract the minimum error associated with the optimal cost complexity value for each model. The error shows a .327 vs .328 and shows the maxdepth of diminishing leaf nodes does fall off after 6. 
+#Review Description!!
+
+create a function to extract the minimum error associated with the optimal cost complexity value for each model. The error shows a .126 vs .134.
 ```{r}
 
 get_cp <- function(x) {
@@ -727,6 +692,9 @@ hyper_grid %>%
    top_n(-6, wt = error)
 ```
 
+
+Now we can view the variance of LIfe Expectancy for different models is 3.51
+
 ```{r}
 optimal_tree <- rpart(
    formula = Life ~ .,
@@ -736,13 +704,7 @@ optimal_tree <- rpart(
  )
 prp(optimal_tree, type=1, extra=101, roundint = FALSE)
  pred <- predict(optimal_tree, newdata = test)
- # pred
-```
-
-
-Variance between life expectancy for different models is 5.4
-```{r}
-  RMSE(pred = pred, obs = test$Life)
+RMSE(pred = pred, obs = test$Life)
 ```
 
 
@@ -752,7 +714,7 @@ rpart.rules(optimal_tree, cover = TRUE)
 ```
 
 
-Bagging: learn trees on boostrapped samples using aggregated variables. Here we reduced error from 5.4 to 5.19.
+Bagging: learn trees on boostrapped samples using aggregated variables. Here we reduced error from 3.51 to 3.06.
 ```{r}
 rfm <- ipred::bagging(Life ~ ., train, nbag=150)
 rfpred <- predict(rfm, test)
@@ -760,7 +722,7 @@ RMSE(rfpred, test$Life)
 
 ```
 
-Let's see if the Out-of-bag sample changes anything, OOB sample is 33% of th training data to estimate the model's accuracy and create a natural cross-validation process. Because the error is higher, we won't use the OOB sample.
+Let's see if the Out-of-bag (OOB) sample changes anything. The OOB sample uses 33% of the training data to estimate the model's accuracy and create a natural cross-validation process. Because the error is higher (3.46) than our original bagging, we won't use the OOB sample.
 ```{r}
 set.seed(123)
 
@@ -770,7 +732,7 @@ baga
 
 ```
 
- The default bagging is 25 boostrap samples and trees, but we changed our metrics to review a broader scope with more samples. Here we can see that of the 100 tree samples used, the error stableizes when around 68 tree samples are used.
+ The default bagging is 25 boostrap samples and trees, but we changed our metrics to review a broader scope with more samples. Here we can see that of the 100 tree samples used, the error more or less stableizes after around 30 tree samples are used.
 ```{r}
 ntree <- 10:100
 rmse <- vector(mode = "numeric", length = length(ntree))
@@ -787,13 +749,12 @@ for (i in seq_along(ntree)) {
 }
 
 plot(ntree, rmse, type = "l", lwd = 2) +
-abline(v=68, col = "blue", lty = "dashed")
+abline(v=30, col = "blue", lty = "dashed")
 
 ```
-We can compare this result to our hyper_grid results that show 91 models can be used to review decision tree combinations.
 
 
-We can validate our results once more with CARET.
+We can validate our results once more with CARET. Using random sub-samples of our dataset we get a mean squared error of 3.16 still a little higher than the original bagging sample, but still low.
 ```{r}
 ctrl <- trainControl(method = "cv",  number = 10) 
 
@@ -809,9 +770,9 @@ bagged_cv
 
 ```
 
-We can look at the variables used in the models and reduce our error to 5.23
+We can look at the variables used in the models to predict their importance and get a random mean squared error of 3.059, the lowest yet.
 ```{r}
-plot(varImp(bagged_cv), 13)
+plot(varImp(bagged_cv), 15)
 
 predct <- predict(bagged_cv, test)
 RMSE(predct, test$Life)
@@ -839,7 +800,7 @@ ps2$confusion
 ps2$error
 ```
 
-#build model based on a forest of 750 trees and predict test data
+Random Forest: build model based on a forest of 750 trees and predict test data
 
 ```{r}
 train$Life <- as.numeric(train$Life)
@@ -853,10 +814,17 @@ RMSE(rfpred, test$Life)
 ```
 
 
-Another algorithm: Gradient boosting: classification and regression. like AdaBoost, but use gradient descent to address the current errors. Can overfit, so using cross-validation is very important (cv.folds)
+Another algorithm: Gradient boosting: classification and regression. like AdaBoost, but use gradient descent to address the current errors. The method can overfit, so using cross-validation is very important (cv.folds). The default method uses gaussian.
 
 ```{r}
-rfm <- gbm(Life ~ ., data=train, n.trees=150, cv.folds=3)
-rfpred <- predict(rfm, test, n.trees=150)
+rfm <- gbm(Life ~ .,
+           data=train,
+           n.trees=150,
+           cv.folds=10)
+
+rfpred <- predict(rfm, 
+                  test,
+                  n.trees=150)
+
 RMSE(rfpred, test$Life)
 ```
