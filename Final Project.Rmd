@@ -86,13 +86,31 @@ data <- left_join(x = data,
 ```
 
 ```{r}
-data$Life <- data$`Life expectancy`
 data$Status = as.factor(data$Status)
 data$Country = as.factor(data$Country)
 
 data <- data %>% select(-c(Polio, "percentage expenditure", Measles, `HIV/AIDS`)) 
 
-data2013 <- data %>% filter(Year=="2013") %>% drop_na()
+
+dataavg <- data %>% 
+  drop_na %>% 
+  group_by(Country) %>% 
+  summarize(Status = last(Status),
+            Life = mean(`Life expectancy`),
+            AdultMort = mean(`Adult Mortality`),
+            infantdeath = mean(`infant deaths`),
+            Alcohol = mean(Alcohol),
+            BMI = mean(BMI),
+            under_five_death = mean(`under-five deaths`),
+            total_exp = mean(`Total expenditure`),
+            Diptheria = mean(Diphtheria),
+            GDP = mean(GDP),
+            Pop = mean(Population),
+            thinness_1_19  = mean(`thinness  1-19 years`),
+            Income_comp = mean(`Income composition of resources`),
+            Schooling = mean(Schooling),
+            region = last(region)) 
+summary(dataavg)
 
 ```
 
@@ -104,8 +122,8 @@ data2013 <- data %>% filter(Year=="2013") %>% drop_na()
 #http://rpubs.com/nicholas_dirienzo/523778
 require(reshape2)
 
-data_melted <- data2013 %>% 
-  select(-Year, -Country, -Status, -region) %>% 
+data_melted <- dataavg %>% 
+  select(-Country, -Status, -region) %>% 
   scale() #make all the variables on the same scale
 
 data_melted <- melt(as.data.frame(data_melted))
@@ -116,31 +134,26 @@ ggplot(data_melted,
   scale_x_continuous(name="Distribution", limits=c(-2, 2)) +
   facet_wrap(~variable)
 ```
-looks like we need to log:
-infant deaths
-alcohol
-under-fives deaths
-GDP
-Population
 
+it looks like we need to log:
+infant deaths  
+under-fives deaths  
+GDP  
+Population  
 
-```{r}
-data2013 <- data2013 %>% mutate(log_infant_deaths = log(`infant deaths`) ,
-                                log_alcohol = log(Alcohol),
-                                log_under_five = log(`under-five deaths`) ,
-                                log_GDP = log(GDP),
-                                log_Population = log(Population)) %>% 
-  select(-c(`infant deaths`,
-            Alcohol,
-            `under-five deaths`,
-            GDP,
-            Population))
-
-```
 
 ```{r, echo=FALSE}
-data_melted <- data2013 %>% 
-  select(-Year, -Country, -Status, -region) %>% 
+dataavg <- dataavg %>% mutate(log_infant_deaths = log(infantdeath+1) ,
+                                log_under_five = log(under_five_death+1) ,
+                                log_GDP = log(GDP),
+                                log_Population = log(Pop)) %>% 
+  select(-c(infantdeath,
+            under_five_death,
+            GDP,
+            Pop))
+
+data_melted <- dataavg %>% 
+  select(-Country, -Status, -region) %>% 
   scale() #make all the variables on the same scale
 
 data_melted <- melt(as.data.frame(data_melted))
@@ -152,21 +165,21 @@ ggplot(data_melted,
   facet_wrap(~variable)
 ```
 
-```{r, message=FALSE,}
+```{r, message=FALSE}
 
 set.seed(5)
 
-ten_countries <- data2013 %>% 
+ten_countries <- dataavg %>% 
   select(Country) %>% 
-  sample_n(.,10) 
+  sample_n(.,14) 
 ```
 
-```{r}
-data2013 %>% 
+```{r, echo=FALSE, message = FALSE}
+dataavg %>% 
   mutate(label = ifelse(Country %in% ten_countries$Country, 
                         as.character(Country), 
                         "")) %>% 
-  ggplot(aes(BMI, `Life expectancy`)) +
+  ggplot(aes(BMI, Life)) +
   geom_point(size = 3.5, 
              alpha = .9,
              shape = 21, 
@@ -186,12 +199,12 @@ data2013 %>%
   geom_smooth()
 ```
 
-```{r}
-data2013 %>% 
+```{r, echo=FALSE, message = FALSE}
+dataavg %>% 
   mutate(label = ifelse(Country %in% ten_countries$Country, 
                         as.character(Country), 
                         "")) %>% 
-  ggplot(aes(log_GDP, `Life expectancy`)) +
+  ggplot(aes(log_GDP, Life)) +
   geom_point(size = 3.5, 
              alpha = .9,
              shape = 21, 
@@ -211,12 +224,12 @@ data2013 %>%
   geom_smooth()
 ```
 
-```{r}
-data2013 %>% 
+```{r, echo=FALSE, message = FALSE}
+dataavg %>% 
   mutate(label = ifelse(Country %in% ten_countries$Country, 
                         as.character(Country), 
                         "")) %>% 
-  ggplot(aes(log_infant_deaths, `Life expectancy`)) +
+  ggplot(aes(log_infant_deaths, Life)) +
   geom_point(size = 3.5, 
              alpha = .9,
              shape = 21, 
@@ -236,12 +249,12 @@ data2013 %>%
   geom_smooth()
 ```
 
-```{r}
-data2013 %>% 
+```{r, echo=FALSE, message = FALSE}
+dataavg %>% 
   mutate(label = ifelse(Country %in% ten_countries$Country, 
                         as.character(Country), 
                         "")) %>% 
-  ggplot(aes(Diphtheria, `Life expectancy`)) +
+  ggplot(aes(Diptheria, Life)) +
   geom_point(size = 3.5, 
              alpha = .9,
              shape = 21, 
@@ -261,12 +274,12 @@ data2013 %>%
   geom_smooth()
 ```
 
-```{r}
-data2013 %>% 
+```{r, echo=FALSE, message = FALSE}
+dataavg %>% 
   mutate(label = ifelse(Country %in% ten_countries$Country, 
                         as.character(Country), 
                         "")) %>% 
-  ggplot(aes(Population, `Life expectancy`)) +
+  ggplot(aes(log_Population, Life)) +
   geom_point(size = 3.5, 
              alpha = .9,
              shape = 21, 
@@ -281,19 +294,19 @@ data2013 %>%
   theme_minimal(14) +
   theme(legend.position = "none",
         panel.grid.minor = element_blank()) +
-  labs(x = "Population",
+  labs(x = "Population (Logged)",
        y = "life expectancy")+
   geom_smooth()
 
 ```
 
 
-```{r}
-data2013 %>% 
+```{r, echo=FALSE, message = FALSE}
+dataavg %>% 
   mutate(label = ifelse(Country %in% ten_countries$Country, 
                         as.character(Country), 
                         "")) %>% 
-  ggplot(aes(`Adult Mortality`, `Life expectancy`)) +
+  ggplot(aes(AdultMort, Life)) +
   geom_point(size = 3.5, 
              alpha = .9,
              shape = 21, 
@@ -335,13 +348,12 @@ Compute Hopkins statistic for dataset:n must be no larger than num of samples
 ```{r}
 # Hopkins, for numerical data only 
 
-
-data_no_cat <- data2013 %>% 
-  select(-Country, -Status, -region, -Year) %>% 
+data_no_cat <- dataavg %>% 
+  select(-Country, -Status, -region) %>% 
   as.matrix()
-rownames(data_no_cat) <- data2013$Country
+rownames(data_no_cat) <- dataavg$Country
 
-res <- get_clust_tendency(data_no_cat, n=137, graph = TRUE)
+res <- get_clust_tendency(data_no_cat, n=139, graph = TRUE)
 res$hopkins_stat
 
 ```
@@ -390,10 +402,8 @@ res$hopkins_stat
 
 
 ```{r}
-gower_dist <- daisy(data2013[, -1], 
-                    metric = "gower",
-                    type = list(logratio = "GDP", 
-                                logratio = "Population"))
+gower_dist <- daisy(dataavg[, -1], 
+                    metric = "gower")
 
 
 # Check attributes to ensure the correct methods are being used (I = interval, N = nominal)
@@ -401,7 +411,7 @@ gower_dist <- daisy(data2013[, -1],
 
 # cleaning it up
 gower_mat <- as.matrix(gower_dist)
-rownames(gower_mat) <- colnames(gower_mat) <- data2013$Country
+rownames(gower_mat) <- colnames(gower_mat) <- dataavg$Country
 
 
 ```
@@ -425,7 +435,7 @@ review 2 clusters
 pam_fit <- pam(gower_dist, diss = TRUE, k = 2)
 
 # add cluster labels to the data. We will use result1 later
-data_clean <- data.frame(data2013, pam_fit$cluster)
+data_clean <- data.frame(dataavg, pam_fit$cluster)
 
 # show clustering results by country
 result1 <- data_clean %>% select(Country,pam_fit.cluster)
@@ -438,7 +448,7 @@ Review 3 clusters
 pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
 
 # add cluster labels to the data. We will use result1 later
-data_clean <- data.frame(data2013, pam_fit$cluster)
+data_clean <- data.frame(dataavg, pam_fit$cluster)
 
 # show clustering results by country
 result1 <- data_clean %>% select(Country,pam_fit.cluster)
@@ -489,14 +499,14 @@ We can use hierarchical clustering to show where the best fit clusters might be.
 ```{r}
 h <- hclust(d = as.dist(gower_dist), method="complete")
 plot(h, cex = 0.3, hang = -1, main="Hierarchal Cluster of Predicted Probabilities") +
-  abline(h=quantile(gower_dist, .90), col="blue")
+  abline(h=quantile(gower_dist, .75), col="blue")
 ```
 
 ```{r}
 tsne_data_hc <- tsne_obj$Y %>%
   data.frame() %>% 
   setNames(c("X", "Y")) %>%
-  mutate(cluster = factor(cutree(h, h=quantile(gower_dist, .90))),
+  mutate(cluster = factor(cutree(h, h=quantile(gower_dist, .75))),
          name = data_clean$Country)
 
 set.seed(5)
@@ -517,10 +527,10 @@ ggplot(aes(x = X, y = Y), data = tsne_data_hc) +
 
 
 ```{r}
-#18 dimensions, so set k = 19
+#16 dimensions, so set k = 17
 
-kNNdistplot(gower_dist, k=19) +
-  abline(h=0.16, col='red', lty=2)
+kNNdistplot(gower_dist, k=17) +
+  abline(h=0.2, col='red', lty=2)
 
 res_col <- optics(gower_dist, eps=10, minPts = 7)
 
@@ -529,7 +539,7 @@ plot(res_col)
 
 ```{r}
 #5 clusters, 21 noise points
-res_col_d <- extractDBSCAN(res_col, eps_cl=0.0915)
+res_col_d <- extractDBSCAN(res_col, eps_cl=0.117)
 plot(res_col_d)
 ```
 
@@ -559,76 +569,31 @@ ggplot(aes(x = X, y = Y), data = tsne_data_den_d) +
                               "#6BB100",
                               "#619CFF"))
 ```
+which countries are outliers? 
 
+```{r}
+tsne_data_den_d %>% 
+    filter(cluster == "0") %>% 
+    select(name) 
+
+
+dataavg %>% filter(Country %in% as.vector(tsne_data_den_d$name[tsne_data_den_d$cluster == 0])) %>% summary()
+# the values are all over the place, making sense why these are "outliers" according to optical clustering. 
+
+```
 
 #Predictive Tasks
 
 ##Decision Trees
-
-partition the data 
-```{r}
-data$Country = as.factor(data$Country)
-data$Year = as.numeric(data$Year)
-
-
-data$Life <- data$`Life expectancy`
-data$infantmort <- cut(data$`infant deaths`, 
-                              breaks = 3, 
-                              labels=c('low_infant', 'middle_infant', 'high_infant'))
-data$expenditure <- cut(data$`Total expenditure`, 
-                              breaks = 3, 
-                              labels=c('low_expenditure','med_expenditure', 'high_expenditure'))
-data$pop <- cut(data$Population, 
-                              breaks = 3, 
-                              labels=c('low_pop','med_pop', 'high_pop'))
-data$bmi <- cut(data$BMI, 
-                              breaks = 3, 
-                              labels=c('low_BMI','med_BMI', 'high_BMI'))  
-data$gdp <- cut(data$GDP, 
-                              breaks = 3, 
-                              labels=c('low_GDP','med_GDP', 'high_GDP'))  
-data$alcohol <- cut(data$Alcohol, 
-                              breaks = 3, 
-                              labels=c('low_alc','med_alc', 'high_alc'))  
-summary(data$Year)
-data$Year <- cut(data$Year, 
-                              breaks = c(-Inf,2007, Inf),
-                              labels=c("2000", "2007"))
-summary(data$Year)
-# data$Year <- cut(data$Year, breaks=c(-Inf, 2007, Inf), labels = c('2000-2007', '2007-2015'))  
-
-drops <- c("Alcohol",
-           "percentage expenditure",
-           "BMI",
-           "GDP",
-           "Diphtheria",
-           "Life expectancy",
-           "Measles",
-           "infant deaths",
-           "Total expenditure", 
-           "thinness  1-19 years",  
-           "thinness 5-9 years", 
-           "Population", 
-           "HIV/AIDS", 
-           "Polio",
-           "under-five deaths",
-           "Adult Mortality",
-           "Income composition of resources",
-           "Schooling",
-           "Country")
-
-data <- data[ , !(names(data) %in% drops)]
-data <- data %>% drop_na
-
-```
-
 Decision Tree with one ensemble method
   Training and Testing Data
   Divide the data into 75% training, 25% test
 ```{r}
-train_rows = sample(1:nrow(data), 0.75*nrow(data))
-train = data[train_rows, ]
-test = data[-train_rows, ]
+dataavg <- dataavg %>% select(-Country)
+
+train_rows = sample(1:nrow(dataavg), 0.75*nrow(dataavg))
+train = dataavg[train_rows, ]
+test = dataavg[-train_rows, ]
 
 ```
 
@@ -849,7 +814,7 @@ RMSE(predct, test$Life)
 Boosting:iteratively adds new models to the ensemble, each model tries to overcome the errors made by the previous model
 
 
-#train$Life <- as.factor(train$Life)
+```{r}
 ct <- boosting(formula = Life ~ ., 
                data = train, 
                boos = TRUE,
@@ -865,7 +830,7 @@ ct1 <- boosting(formula = Life ~ .,
 ps2 <- predict(ct, test) 
 ps2$confusion
 ps2$error
-
+```
 
 #build model based on a forest of 750 trees and predict test data
 
