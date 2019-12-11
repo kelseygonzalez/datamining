@@ -1,0 +1,24 @@
+---
+title: "ANN"
+author: "Laura.w"
+date: "12/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressPackageStartupMessages(install.packages("neuralnet"))
+suppressPackageStartupMessages(install.packages("NeuralNetTools"))
+suppressPackageStartupMessages(install.packages("h2o"))
+library(nnet) 
+library(h2o)
+library(NeuralNetTools)
+library(ggplot2)
+```
+```{r}
+
+
+```
