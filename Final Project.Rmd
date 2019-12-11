@@ -438,11 +438,12 @@ data_results$the_summary
 ```
 The results suggest:
 
-Cluster 1 has all developing countries (53) with a median Life Expectancy of around 58 years, mean logged population of 15.5 (~15M) people, an average of about 9 years of schooling and is mainly comprised of 38 countries in Africa, 13 in Asian, 1 in the Americas, and 1 in Oceana.
+Cluster 1 has all developing countries (53) with a median Life Expectancy of around 58 years, and is mainly comprised of 38 countries in Africa, 13 in Asian, 1 in the Americas, and 1 in Oceana.
 
-Cluster 2 has all developing countries (55) with a median Life Expectancy of around 73 years, a mean logged population of 14.09 (~14M) people, an average of about 12.5 years of schooling and is mainly comprised of22 countries in the Americas, 17 in Asia, 6 in Oceana, 5 in Africa, and 5 in Europe.
+Cluster 2 has all developing countries (55) with a median Life Expectancy of around 73 years, and is mainly comprised of 22 countries in the Americas, 17 in Asia, 6 in Oceana, 5 in Africa, and 5 in Europe.
 
-Cluster 3 has mostly developed countries (26) and 6 developing countries, with a median Life Expectancy of around 80 years, a mean logged population of 14.87 people (~ 14M), an average of almost 16 years of schooling and is mainly comprised of countries in Europe, 29, and Oceania, 1.
+Cluster 3 has mostly developed countries (26) and 6 developing countries with a median Life Expectancy of around 80 years, and is mainly comprised of countries in Europe, 29, and Oceania, 1.
+
 
 
 
@@ -575,37 +576,39 @@ Decision Tree (using regression):
 
 The automatic cost complexity of the tree shows diminishing returns after 6 terminal (leaf) nodes.
 ```{r}
+
 m1 <- rpart(
   formula = Life ~ .,
   data = train,
- cp = 0.01,
+  cp = 0.01,
   method = "anova"
 )
+#prp(m1, type = 1, extra = 101, roundint = FALSE)
 
-rpart.plot(m1)
+library(RColorBrewer)
+library(rattle)
+fancyRpartPlot(m1)
 
 ```
 
-Plot the tree that includes the observation number within each node:
-```{r}
-prp(m1, type = 1, extra = 101, roundint = FALSE)
-```
 
 #In the plot, y-axis is cross validation error, lower x-axis is cost complexity (α or cp) value, upper x-axis is the number of terminal nodes (tree size) 
 
 We find diminishing returns after 6 terminal (leaf) nodes at a cost complexity parameter (cp).
 You may also notice the dashed line which goes through the terminal node, tree size= 4.
-
+The vertical reference line is drawn at the complexity parameter that has the lowest cross validated average squared error of the prediction, and the corresponding size for that complexity parameter is selected as the maximum nodes of the tree.
 
 ```{r}
-plotcp(m1)
+plotcp(m1, col = "blue") + 
+abline(v = 4, col = "red", lty = "dashed")
 ```
 
-This clustering tree has a control for cross validation X-val, and Cost complexity parameter (cp) where we now have a vertical line at 6, in relation to our leaf nodes in the decision tree. Shown below.
+
+This tree has a control for cross validation X-val, and Cost complexity parameter (cp) where we now have a vertical line at 5, in relation to our leaf nodes in the decision tree. Shown below.
 
 The vertical reference line is drawn at the complexity parameter that has the lowest cross validated average squared error of the prediction, and the corresponding size for that complexity parameter is selected as the maximum nodes of the tree.
 
-To show the value of a 4 maximum node tree, we can see the plot below to review the diminishing returns as the tree continues to grow.
+To show the value of a 6 maximum node tree, we can see the plot below to review the diminishing returns as the tree continues to grow.
 
 ```{r}
 m2 <- rpart(
@@ -615,10 +618,10 @@ m2 <- rpart(
    control = list(cp = 0, xval = 10)
  )
  
-plotcp(m2) + 
-abline(v = 4, lty = "dashed")
+plotcp(m2, col = "blue") + 
+abline(v = 5, col = "green", lty = "dashed")
 
-#rpart.plot(m2)
+fancyRpartPlot(m2, col = "White")
 
 ```
 
@@ -630,10 +633,12 @@ m3 <- rpart(
   formula = Life ~ .,
   data = train,
   method = "anova",
-  control = list(minsplit = 4, maxdepth = 6, xval = 10)
+  control = list(minsplit = 0, maxdepth = 15, xval = 10)
 )
 
 m3$cptable
+rpart.plot(m3)
+
 ```
 
 Then we search the grid, prividing room for our splits and leaf nodes in our ranges. The results show 91 different combinations, requiring 91 different models.
@@ -651,7 +656,6 @@ hyper_grid <- expand.grid(
 
 
 Now we can automate the modeling and save each model into its own item list.
-
 ```{r}
  models <- list()
  for (i in 1:nrow(hyper_grid)) {
@@ -700,7 +704,7 @@ optimal_tree <- rpart(
    formula = Life ~ .,
    data    = train,
    method  = "anova",
-   control = list(minsplit = 10, maxdepth = 15, cp = 0.01)
+   control = list(minsplit = 3, maxdepth = 15, cp = 0.01)
  )
 prp(optimal_tree, type=1, extra=101, roundint = FALSE)
  pred <- predict(optimal_tree, newdata = test)
@@ -732,7 +736,7 @@ baga
 
 ```
 
- The default bagging is 25 boostrap samples and trees, but we changed our metrics to review a broader scope with more samples. Here we can see that of the 100 tree samples used, the error more or less stableizes after around 30 tree samples are used.
+The default bagging is 25 boostrap samples and trees, but we changed our metrics to review a broader scope with more samples. Here we can see that of the 150 tree samples used, the error more or less stableizes after around 30 tree samples are used, then has a slight rise and just falls after that.
 ```{r}
 ntree <- 10:100
 rmse <- vector(mode = "numeric", length = length(ntree))
@@ -748,8 +752,16 @@ for (i in seq_along(ntree)) {
   rmse[i] <-model$err
 }
 
+min(rmse)
 plot(ntree, rmse, type = "l", lwd = 2) +
-abline(v=30, col = "blue", lty = "dashed")
+abline(v=30, col = "blue", lty = "dashed") +
+  abline(v=116, col = "green", lty = "dashed")
+```
+
+```{r}
+#suppressPackageStartupMessages(install.packages("inTrees"))
+#library(inTrees)
+#extractRules(rmse, X, ntree = 100, maxdepth = 6, random = FALSE, digits = NULL)
 
 ```
 
@@ -768,9 +780,11 @@ bagged_cv <- train(
   )
 bagged_cv
 
+
+
 ```
 
-We can look at the variables used in the models to predict their importance and get a random mean squared error of 3.059, the lowest yet.
+We can look at the variables used in the models to predict their importance and get a random mean squared error of 3.059, using the CARET method, the lowest yet.
 ```{r}
 plot(varImp(bagged_cv), 15)
 
@@ -781,23 +795,22 @@ RMSE(predct, test$Life)
 
 Boosting:iteratively adds new models to the ensemble, each model tries to overcome the errors made by the previous model
 
-
 ```{r}
-ct <- boosting(formula = Life ~ ., 
-               data = train, 
-               boos = TRUE,
-               mfinal=10,
-               control = rpart.control(cp = -1))
+#ct <- boosting(formula = Life ~ ., 
+ #              data = train, ntree=150,
+  #             boos = TRUE,
+   #            mfinal=10,
+    #           control = rpart.control(cp = 1))
 
-ct1 <- boosting(formula = Life ~ ., 
-               data = train, 
-               boos = TRUE,
-               mfinal=10,
-               control = rpart.control(minsplit = 0))
+#ct1 <- boosting(formula = Life ~ ., 
+ #              data = train, 
+  #             boos = TRUE,
+   #            mfinal=10,
+    #           control = rpart.control(minsplit = 0))
 
-ps2 <- predict(ct, test) 
-ps2$confusion
-ps2$error
+#ps2 <- predict(ct, test) 
+#ps2$confusion
+#ps2$error
 ```
 
 Random Forest: build model based on a forest of 750 trees and predict test data
@@ -813,8 +826,15 @@ RMSE(rfpred, test$Life)
 
 ```
 
+```{r}
+suppressPackageStartupMessages(install.packages("party"))
+library(randomForest)
+cforest <- randomForest(Life ~ ., data=test, controls=cforest_control(mtry=2, mincriterion=0))
+getTree(cforest, 1, labelVar = TRUE)
+```
 
-Another algorithm: Gradient boosting: classification and regression. like AdaBoost, but use gradient descent to address the current errors. The method can overfit, so using cross-validation is very important (cv.folds). The default method uses gaussian.
+
+Gradient boosting uses classification and regression. like AdaBoost, but use gradient descent to address the current errors. The method can overfit, so using cross-validation is very important (cv.folds). The default method uses gaussian.
 
 ```{r}
 rfm <- gbm(Life ~ .,
@@ -827,4 +847,5 @@ rfpred <- predict(rfm,
                   n.trees=150)
 
 RMSE(rfpred, test$Life)
+
 ```
