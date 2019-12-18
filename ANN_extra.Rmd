@@ -17,8 +17,149 @@ library(nnet)
 library(h2o)
 library(NeuralNetTools)
 library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+rm(list = ls())
+
+load("LifeExpectancyData_3.Rdata")
+
+data$Status = as.factor(data$Status)
+
+data$Year = as.factor(data$Year)
+
+data$Country = as.factor(data$Country)
+
+data$region = as.factor(data$region)
+
+data <- data %>% drop_na()
+
+data_fil <- data %>% filter(data$Year=="2013") %>% select(-c("Country", "Year", "infant deaths", "Alcohol", "under-five deaths", "Diphtheria", "HIV/AIDS", "Status")) %>% drop_na()
+
+
+```
+
+Rename columns
+
+ colnames(data)
+ 
+ names(data)[names(data) == "Life expectancy"] <- "life"
+ names(data)[names(data) == "Adult Mortality"] <- "adultmort"
+ names(data)[names(data) == "percentage expenditure"] <- "percentexpd"
+ names(data)[names(data) == "Income composition of resources"] <- "inomcomp"
+
+colnames(data)
+
+
+```{r}
+colnames(data_fil)
+ 
+ names(data_fil)[names(data_fil) == "Life expectancy"] <- "life"
+ names(data_fil)[names(data_fil) == "Adult Mortality"] <- "adultmort"
+ names(data_fil)[names(data_fil) == "percentage expenditure"] <- "percentexpd"
+ names(data_fil)[names(data_fil) == "Income composition of resources"] <- "inomcomp"
+
+colnames(data_fil)
+```
+
+```{r}
+#life expectancy, population, gdp, Income composition of resources, percentage expenditure, BMI
+
+(data_fil$life <- as.vector(scale(data_fil$life, center = min(data_fil$life), scale=max(data_fil$life)-min(data_fil$life))))
+
+(data_fil$Population <- as.vector(scale(data_fil$Population, center = min(data_fil$Population), scale=max(data_fil$Population)-min(data_fil$Population))))
+
+(data_fil$GDP <- as.vector(scale(data_fil$GDP, center = min(data_fil$GDP), scale=max(data_fil$GDP)-min(data_fil$GDP))))
+
+(data_fil$inomcomp <- as.vector(scale(data_fil$inomcomp, center = min(data_fil$inomcomp), scale=max(data_fil$inomcomp)-min(data_fil$inomcomp))))
+
+(data_fil$percentexpd <- as.vector(scale(data_fil$percentexpd, center = min(data_fil$percentexpd), scale=max(data_fil$percentexpd)-min(data_fil$percentexpd))))
+
+(data_fil$BMI <- as.vector(scale(data_fil$BMI, center = min(data_fil$BMI), scale=max(data_fil$BMI)-min(data_fil$BMI))))
+
+(data_fil$adultmort <- as.vector(scale(data_fil$adultmort, center = min(data_fil$adultmort), scale=max(data_fil$adultmort)-min(data_fil$adultmort))))
+
+set.seed(97)
+
+summary(data_fil)
+
+```
+
+```{r}
+
+#sample <- sample(1:nrow(data), 100)
+#train <- data[sample, ]
+#test <- data[-sample, ]
+```
+
+```{r}
+
+sample_fil <- sample(1:nrow(data_fil), 90)
+
+train_fil <- data_fil[sample_fil, ]
+
+test_fil <- data_fil[-sample_fil, ]
+
+```
+
+#In the formula, if 'class' is a factor, then ann will perform classification. If 'class' is a numerical variable, then the ann will perform regression
+> #size: number of nodes in the hidden layer
+> #trace: whether to output the process of the learning
+> #maxit: max iterations to complete before stoping the training
+> #the () that inclose everything will print the result (n) on the counsel
+
+```{r}
+set.seed(70)
+n <- nnet(life ~ ., train_fil, size=3, trace=TRUE, maxit=500)
+
+n
+
+```
+
+```{r}
+(predict <- predict(n, test_fil))
+
+(predict <- predict(n, test_fil, type="raw"))
+```
+compare predict with the truth in test
+> #predict and ts$Species are two vectors
+> #Calling table() on them creates a continguency table of the counts at each combination of factor levels.
+
+```{r}
+
+(contingency <- table(predict, test_fil$life))
+
+
 ```
 ```{r}
 
+#Compute accurarcy = correct / total
+(accuracy <- sum(diag(contingency))/sum(contingency))
+
+plotnet(n)
+```
+```{r}
+lapply(data_fil, class)
+```
+
+prediction isn't very high
+```{r}
+predict <- predict(n, test_fil)
+(MAD <- mean(abs(predict-test_fil$life)))
+```
+
+Importance is skewed towards percentage expendature. So we can drop polio and see if the mean is higher. It went from .o12 to .092, a good jump.
+```{r}
+
+garson(n) + theme(axis.text.x=element_text(angle=45, hjust=1))
+
+```
+
+
+
+```{r}
+plotnet(n)
 
 ```
