@@ -456,6 +456,7 @@ res_col_d <- extractDBSCAN(res_col, eps_cl=0.117)
 plot(res_col_d)
 ```
 
+review with t-sne
 ```{r}
 tsne_data_den_d<- tsne_obj$Y %>%
   data.frame() %>% 
