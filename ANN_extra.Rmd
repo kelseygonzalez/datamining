@@ -1,6 +1,6 @@
 ---
 title: "ANN"
-author: "Laura.w"
+author: "Laura.w and Kelsey Gonsalez"
 date: "12/10/2019"
 output: html_document
 ---
